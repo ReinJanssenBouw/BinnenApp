@@ -1,0 +1,50 @@
+{
+  "name": "binnenapp",
+  "version": "1.0.0",
+  "description": "BinnenApp desktop app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "updatebeleid": "node scripts/maak-updatebeleid.cjs"
+  },
+  "build": {
+    "appId": "com.binnenapp.app",
+    "productName": "BinnenApp",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ReinJanssenBouw",
+        "repo": "BinnenApp"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "**/*",
+      "!Backups/**",
+      "!supabase/**",
+      "!PREVIEW.html",
+      "!CODEX.md",
+      "!AUTH-BEVINDINGEN.*",
+      "!scripts/**"
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BinnenApp"
+    }
+  },
+  "devDependencies": {
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "electron-updater": "6.8.3"
+  }
+}

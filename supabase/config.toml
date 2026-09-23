@@ -1,0 +1,5 @@
+# De bestaande JWT-gatewaycontrole blijft verplicht ingeschakeld.
+# Daarnaast controleert de service-RPC het per taak begrensde toegangstoken.
+# De dispatcher gebruikt daarnaast de geverifieerde publieke legacy anon-JWT.
+[functions.copy-order-confirmation]
+verify_jwt = true
