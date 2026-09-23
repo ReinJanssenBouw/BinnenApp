@@ -8,7 +8,7 @@ const REPOSITORY = 'ReinJanssenBouw/BinnenApp';
 const BELEID_NAAM = 'binnenapp-updatebeleid.json';
 const RELEASE_API = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
 const BELEID_URL = `https://github.com/${REPOSITORY}/releases/latest/download/${BELEID_NAAM}`;
-const LAATSTE_VERSIE_ZONDER_BELEID = '2.2.69';
+const LAATSTE_VERSIE_ZONDER_BELEID = '0.0.0';
 
 function maakUpdateBeleid({ versie, verplicht, vorigBeleid }) {
   vergelijkVersies(versie, versie);

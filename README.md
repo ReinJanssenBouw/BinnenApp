@@ -4,9 +4,9 @@ Zelfstandige Windows-app voor de binnenploeg van Janssen Bouw, gebaseerd op Buit
 
 ## Projecten
 
-- GitHub: https://github.com/ReinJanssenBouw/BinnenApp (privé)
+- GitHub: https://github.com/ReinJanssenBouw/BinnenApp (openbaar)
 - Supabase: https://supabase.com/dashboard/project/guurncfxhcxwvgnzoeyp
-- Windows-installatie: `dist/BinnenApp-Setup-1.0.0.exe`
+- Windows-installatie: `dist/BinnenApp-Setup-1.0.1.exe`
 
 ## Ingericht en gecontroleerd
 
@@ -22,7 +22,7 @@ Zelfstandige Windows-app voor de binnenploeg van Janssen Bouw, gebaseerd op Buit
 1. Eerste beheerdersaccount: registreer rein@janssen-bouw.nl in BinnenApp en bevestig het e-mailadres. Daarna krijgt dit account automatisch beheertoegang.
 2. Mail: stel `RESEND_API_KEY`, `ORDER_MAIL_FROM` en `ORDER_MAIL_NOTIFY` in bij Supabase Edge Function secrets. Er zijn geen testmails verzonden.
 3. OneDrive/Power Automate: een eigen flow, geheime URL en bijpassende allowlist in `copy-order-confirmation` zijn nog nodig. De PDF-kopieertaak blijft uit totdat dit is ingesteld; gewone PDF-opslag in BinnenApp werkt afzonderlijk.
-4. Automatische updates: de repository is privé. De bestaande GitHub-updater heeft een publiek bereikbare releasefeed nodig; geef geen GitHub-toegangstoken mee in de app. Installer en updatepublicatie moeten hierop worden afgestemd.
+4. Automatische updates: ingeschakeld via openbare GitHub Releases. De app toont bij elke start het blauwe splashscreen, controleert op updates en downloadt nieuwe versies op de achtergrond. Installeren gebeurt via de knop Opnieuw opstarten.
 5. De aparte mobiele BuitenApp-site is niet als BinnenApp-site gepubliceerd.
 
 ## Ontwikkeling
@@ -38,4 +38,5 @@ npm run dist -- --win --publish never
 ## Logo
 
 `BinnenAppLogo.png` is gemaakt met de ingebouwde imagegen-tool, op basis van het bestaande BuitenApp-logo. Opdracht: behoud het ronde huislogo, de witte binnenkant en vier ramen; verander groen/turquoise naar blauw (#3b82f6–#1e40af), zonder tekst of nieuwe elementen, met transparante buitenkant. Het Windows-icoon is daarvan op 256 pixels gemaakt. De witte logovariant blijft op de blauwe appachtergrond staan.
+
 

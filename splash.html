@@ -107,7 +107,7 @@ h1 {
 
 <div class="status-area">
   <div class="spinner" id="spinner"></div>
-  <div class="status-text" id="statusText">Controleren op updates...</div>
+  <div class="status-text" id="statusText">BinnenApp starten...</div>
   <div class="progress-wrap" id="progressWrap">
     <div class="progress-bar" id="progressBar"></div>
   </div>
@@ -126,8 +126,8 @@ h1 {
       case 'version':
         versionLabel.textContent = `v${data.version}`;
         break;
-      case 'up-to-date':
-        statusText.textContent = 'Up-to-date, opstarten...';
+      case 'starting':
+        statusText.textContent = 'BinnenApp starten...';
         break;
       case 'loading-data':
         progressWrap.style.display = 'block';

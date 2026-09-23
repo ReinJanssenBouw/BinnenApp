@@ -189,7 +189,7 @@ app.whenReady().then(() => {
 
     // De app blijft altijd starten, ook zonder netwerk of tijdens een download.
     // Updates worden op de achtergrond voorbereid en alleen via de knop herstart.
-    sendSplash({ type: 'up-to-date' });
+    sendSplash({ type: 'starting' });
     updateBeheer.start();
     await loadDataAndStart(backend);
   });
