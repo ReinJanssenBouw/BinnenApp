@@ -1,6 +1,6 @@
 // Een wachtrijtoken geeft uitsluitend toegang tot één reeds vastgelegde kopieertaak.
 // Deze functie accepteert geen vrije opslagpaden, ontvangers of downloadadressen.
-const PROJECT_URL = 'https://binnenapp-nog-instellen.invalid';
+const PROJECT_URL = 'https://guurncfxhcxwvgnzoeyp.supabase.co';
 const MICROSOFT_HOST = 'default3b64c7b3fe4444f4959224fb18576e.96.environment.api.powerplatform.com';
 const MICROSOFT_PAD = '/powerautomate/automations/direct/cu/17/workflows/c9cacb781484404b99f56be517f6d130/triggers/manual/paths/invoke';
 const UUID_PATROON = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

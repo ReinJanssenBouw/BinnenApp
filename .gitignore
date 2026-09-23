@@ -2,3 +2,7 @@ node_modules/
 dist/
 .claude/
 *.blockmap
+supabase/.temp/
+.env
+.env.*
+!.env.example

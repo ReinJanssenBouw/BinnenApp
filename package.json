@@ -20,16 +20,23 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icon.ico"
     },
     "files": [
-      "**/*",
-      "!Backups/**",
-      "!supabase/**",
-      "!PREVIEW.html",
-      "!CODEX.md",
-      "!AUTH-BEVINDINGEN.*",
-      "!scripts/**"
+      "main.js",
+      "preload.js",
+      "supabase-backend.js",
+      "update-beheer.js",
+      "update-beleid.js",
+      "BinnenApp.html",
+      "splash.html",
+      "BinnenAppLogo.png",
+      "BinnenAppLogoWit.png",
+      "icon.ico",
+      "pdf-bekijker.css",
+      "pdf-bekijker.js",
+      "vendor/**/*"
     ],
     "nsis": {
       "oneClick": false,
@@ -46,5 +53,6 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
     "electron-updater": "6.8.3"
-  }
+  },
+  "author": "Janssen Bouw"
 }

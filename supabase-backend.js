@@ -2,8 +2,8 @@
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = 'https://binnenapp-nog-instellen.invalid';
-const SUPABASE_PUBLISHABLE_KEY = 'BINNENAPP_PUBLISHABLE_KEY_NOG_INSTELLEN';
+const SUPABASE_URL = 'https://guurncfxhcxwvgnzoeyp.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_iomMmjLjzETZ_RLIq5bemA_e02lXOOk';
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 // --- Auth-logboek ----------------------------------------------------
