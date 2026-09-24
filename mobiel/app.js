@@ -26,6 +26,7 @@ const bewaardeSortering = localStorage.getItem("binnenapp_sortering");
 // ── Toestand ────────────────────────────────────────────────────────────
 const staat = {
   gebruiker: null,
+  beheerder: false,
   tab: "winkel",
   producten: [],
   wagen: {},          // product_id -> aantal
@@ -1142,7 +1143,8 @@ function lijstVoorraad() {
         <div class="artikel-meta">
           ${chip}
           ${p.jb_code ? `<span class="artikel-chip">${esc(p.jb_code)}</span>` : ""}
-          <span class="artikel-chip">min ${min} ${esc(eenheid)}</span>
+          <span class="artikel-chip">Minimum ${min} ${esc(eenheid)}</span>
+          <span class="artikel-chip">Aanvulvoorraad ${Number(p.target_stock ?? min)} ${esc(eenheid)}</span>
           ${plek ? `<span class="artikel-chip">${esc(plek)}</span>` : ""}
         </div>
       </div>
@@ -1166,6 +1168,13 @@ function lijstVoorraad() {
       </button>
     </div>
     <div class="voorraad-hint">Pas met &minus; of + aan, of vul het exacte aantal in.</div>
+    ${staat.beheerder ? `<details class="voorraad-grenzen"><summary>Minimum en aanvulvoorraad aanpassen</summary>
+      <p>Onder het minimum bestellen we bij tot de aanvulvoorraad.</p>
+      <div class="voorraad-grenzen-velden">
+        <label>Minimumvoorraad<input id="minimum-${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${min}"></label>
+        <label>Aanvulvoorraad<input id="aanvul-${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${Number(p.target_stock ?? min)}"></label>
+      </div><button type="button" class="knop klein" data-grenzen-opslaan="${p.id}">Opslaan</button>
+    </details>` : ""}
     </div>`;
   }).join("") : (staat.laadfout
     ? `<div class="lege-staat"><strong>Voorraad kon niet worden geladen</strong>${esc(staat.laadfout)}</div>`
@@ -1175,6 +1184,30 @@ function lijstVoorraad() {
 function hertekenVoorraadLijst() {
   const lijst = $("lijst");
   if (lijst) lijst.innerHTML = lijstVoorraad();
+}
+
+async function voorraadGrenzenOpslaan(id, knop) {
+  const p = product(Number(id));
+  if (!staat.beheerder || !p.id || knop.disabled) return;
+  const minimumTekst = $("minimum-" + p.id).value;
+  const aanvulTekst = $("aanvul-" + p.id).value;
+  const minimum = Number(minimumTekst), aanvul = Number(aanvulTekst);
+  if (!minimumTekst || !aanvulTekst || !Number.isInteger(minimum) || !Number.isInteger(aanvul) || minimum < 0 || aanvul < minimum || aanvul > 1000000) {
+    return melden("Vul hele aantallen in. Aanvulvoorraad moet minstens gelijk zijn aan het minimum (max. 1.000.000).");
+  }
+  knop.disabled = true;
+  try {
+    const {data, error} = await db.rpc("binnenapp_set_stock_levels", {
+      p_product_id: p.id, p_min_stock: minimum, p_target_stock: aanvul,
+      p_expected_min: Number(p.min_stock || 0), p_expected_target: Number(p.target_stock ?? p.min_stock ?? 0),
+    });
+    if (error) throw error;
+    Object.assign(p, data);
+    tekenScherm();
+    melden("Minimum en aanvulvoorraad opgeslagen.");
+  } catch (error) {
+    melden(foutTekst(error));
+  } finally { knop.disabled = false; }
 }
 
 function leesVoorraadVeld(id) {
@@ -1245,7 +1278,7 @@ function schermVoorraad() {
     </div>
     <div class="sorteer-regel">${sorteerKnopMarkup()}</div>
     ${tekort.length ? `<button class="knop leeg klein" id="aanvulKnop" style="margin-bottom:14px">
-      ${tekort.length} ${tekort.length === 1 ? "artikel" : "artikelen"} aanvullen tot minimum</button>` : ""}
+      ${tekort.length} ${tekort.length === 1 ? "artikel" : "artikelen"} aanvullen tot aanvulvoorraad</button>` : ""}
     <div id="lijst">${lijstVoorraad()}</div>
   `;
 }
@@ -2093,7 +2126,7 @@ function voorraadAanvullen() {
   });
   let aantalToegevoegd = 0;
   tekorten.forEach((p) => {
-    const tekort = Number(p.min_stock || 0) - Number(p.stock || 0);
+    const tekort = Number(p.target_stock ?? p.min_stock ?? 0) - Number(p.stock || 0);
     const s = stap(p);
     const nodig = s > 1 ? Math.ceil(tekort / s) * s : Math.ceil(tekort);
     if (nodig > Number(staat.wagen[p.id] || 0)) {
@@ -2307,10 +2340,11 @@ document.addEventListener("click", (e) => {
     });
   }
 
-  const el = e.target.closest("[data-plus],[data-min],[data-voorraad-richting],[data-voorraad-opslaan],[data-sorteer-open],[data-sortering],[data-cat],[data-filter-cat],[data-filter-wis],[data-order],[data-retour],[data-retour-weg],[data-nalever],[data-datepick-toggle],[data-datepick-verschuif],[data-datepick-dag],[data-datepick-reset],[data-push-actie],#bestelKnop,#bVerstuur,#aanvulKnop,#scanKnop,#scannerSluit,#scannerAnnuleer,#scannerOpnieuw,#categorieKnop,#categorieSluit,#sorteerSluit,#meldingenSluit");
+  const el = e.target.closest("[data-grenzen-opslaan],[data-plus],[data-min],[data-voorraad-richting],[data-voorraad-opslaan],[data-sorteer-open],[data-sortering],[data-cat],[data-filter-cat],[data-filter-wis],[data-order],[data-retour],[data-retour-weg],[data-nalever],[data-datepick-toggle],[data-datepick-verschuif],[data-datepick-dag],[data-datepick-reset],[data-push-actie],#bestelKnop,#bVerstuur,#aanvulKnop,#scanKnop,#scannerSluit,#scannerAnnuleer,#scannerOpnieuw,#categorieKnop,#categorieSluit,#sorteerSluit,#meldingenSluit");
   if (!el) return;
 
-  if (el.dataset.pushActie === "aan") meldingenAanzetten().catch((error) => melden(foutTekst(error)));
+  if (el.dataset.grenzenOpslaan) voorraadGrenzenOpslaan(el.dataset.grenzenOpslaan, el);
+  else if (el.dataset.pushActie === "aan") meldingenAanzetten().catch((error) => melden(foutTekst(error)));
   else if (el.dataset.pushActie === "uit") meldingenUitzetten().catch((error) => melden(foutTekst(error)));
   else if (el.dataset.datepickToggle) datepickToggle(el.dataset.datepickToggle);
   else if (el.dataset.datepickVerschuif) datepickVerschuif(el.dataset.datepickId, Number(el.dataset.datepickVerschuif));
@@ -2481,6 +2515,8 @@ async function start() {
     return;
   }
   staat.gebruiker = session.user;
+  const { data: lid } = await db.rpc("binnenapp_membership_status");
+  staat.beheerder = lid?.active === true && lid?.role === "admin";
   const gevraagdeTab = new URLSearchParams(location.search).get("tab");
   if (PUSH_TABBLADEN.includes(gevraagdeTab)) staat.tab = gevraagdeTab;
   await laadAlles();

@@ -1032,3 +1032,4 @@ button:disabled{transform:none!important;box-shadow:none;cursor:default;}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
 }
+.voorraad-grenzen{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:13px}.voorraad-grenzen summary{cursor:pointer;color:#2453b8;font-weight:600}.voorraad-grenzen p{color:#64748b;margin:10px 0}.voorraad-grenzen-velden{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.voorraad-grenzen-velden label{min-width:0;font-weight:600}.voorraad-grenzen-velden input{display:block;box-sizing:border-box;width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:16px}

@@ -1446,7 +1446,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.2</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.3</span>
       </div>
     </div>
 
@@ -1621,7 +1621,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <div class="shop-count-pill"><strong id="voorraadResultCount">0</strong><span>items</span></div>
         <button class="btn-aanvullen" type="button" id="voorraadAanvulBtn" onclick="vulVoorraadAan()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
-          <span>Aanvullen tot minimum</span>
+          <span>Aanvullen tot aanvulvoorraad</span>
           <strong id="voorraadTekortCount">0</strong>
         </button>
       </div>
@@ -1766,6 +1766,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
           <p class="artikel-hulp artikel-voorraad-intro">Actuele aantallen en de gewenste ondergrens.</p>
           <div class="artikel-velden">
             <div class="artikel-veld"><label for="artikelVoorraad">Voorraad in stuks <span>*</span></label><input id="artikelVoorraad" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="0"></div>
+            <div class="artikel-veld"><label for="artikelAanvul">Aanvulvoorraad in stuks <span>*</span></label><input id="artikelAanvul" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="0"><small>Tot dit aantal aanvullen zodra de voorraad onder het minimum komt.</small></div>
             <div class="artikel-veld"><label for="artikelMinimum">Minimumvoorraad in stuks <span>*</span></label><input id="artikelMinimum" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="0"></div>
           </div>
           <p class="artikel-hulp" id="artikelVoorraadUitleg">Bij minimum 0 hoef je dit artikel niet op voorraad te houden.</p>
@@ -2799,6 +2800,7 @@ function normalizeSharePointArticle(row, index = 0) {
     eenheid,
     voorraad: getSharePointNumber(row, ['Voorraad', 'Aantal', 'AantalOpVoorraad', 'Stock', 'InStock'], 0),
     minVoorraad: getSharePointNumber(row, ['MinVoorraad', 'MinVoorraad1', 'MinimumVoorraad'], 0),
+    aanvulVoorraad: getSharePointNumber(row, ['AanvulVoorraad'], getSharePointNumber(row, ['MinVoorraad', 'MinVoorraad1', 'MinimumVoorraad'], 0)),
     prijsPS: getSharePointNumber(row, ['PrijsPS', 'PrijsPs', 'prijsPS', 'prijsPs', 'Prijs per set', 'PrijsPerSet', 'Prijs_x0020_PS'], 0),
     // Een expliciet lege artikelfoto mag niet via de oude aliaszoeker de bronfoto worden.
     productFoto: Object.prototype.hasOwnProperty.call(row, 'ProductFoto') ? getSharePointUrl({ ProductFoto: row.ProductFoto }, 'ProductFoto') : getSharePointUrl(row, 'productFoto', 'listProductFoto', 'Foto', 'Image', 'Afbeelding', 'Afbeelding?', 'Afbeelding_x003f_'),
@@ -2950,6 +2952,7 @@ function buildCartPayloadItem(item = {}, aantal = 0) {
     PrijsPS: Number(item.prijsPS || item.PrijsPS || 0),
     ProductFoto: item.productFoto || '',
     Voorraad: item.voorraad ?? '',
+    AanvulVoorraad: item.aanvulVoorraad ?? item.minVoorraad,
     MinVoorraad: item.minVoorraad ?? '',
     Stelling: item.stelling || '',
     XAs: item.xAs || '',
@@ -6448,6 +6451,7 @@ function getOrderItemDetails(line = {}) {
     productFoto: product.productFoto || line.productFoto || line.ProductFoto || line.listProductFoto || '',
     eenheid: product.eenheid || line.eenheid || line.Eenheid || 'st',
     voorraad: product.voorraad ?? line.Voorraad ?? '',
+    aanvulVoorraad: product.aanvulVoorraad ?? line.AanvulVoorraad ?? product.minVoorraad,
     minVoorraad: product.minVoorraad ?? line.MinVoorraad ?? '',
     verpaktPer: product.verpaktPer ?? line.VerpaktPer ?? '',
     prijsPS: product.prijsPS ?? product.PrijsPS ?? line.PrijsPS ?? '',
@@ -6543,6 +6547,7 @@ function legeBeheerArtikel() {
     prijsPS: 0,
     voorraad: 0,
     minVoorraad: 0,
+    aanvulVoorraad: 0,
     stelling: '',
     xAs: '',
     yAs: '',
@@ -6650,6 +6655,7 @@ function vulArtikelFormulier(artikel, behoudTab = false) {
   zetArtikelVeld('artikelPrijs', String(Number(artikel.prijsPS || 0)).replace('.', ','));
   zetArtikelVeld('artikelVoorraad', artikel.voorraad);
   zetArtikelVeld('artikelMinimum', artikel.minVoorraad);
+  zetArtikelVeld('artikelAanvul', artikel.aanvulVoorraad ?? artikel.minVoorraad);
   zetArtikelVeld('artikelStelling', artikel.stelling);
   zetArtikelVeld('artikelXAs', artikel.xAs);
   zetArtikelVeld('artikelYAs', artikel.yAs);
@@ -6757,14 +6763,14 @@ function updateArtikelSamenvatting() {
   document.getElementById('artikelPrijsVerpakking').textContent = Number.isFinite(prijs) && prijs >= 0 ? geld(prijs) : '—';
   document.getElementById('artikelPrijsStuk').textContent = Number.isFinite(prijs) && prijs >= 0 && Number.isInteger(verpakking) && verpakking > 0 ? geld(prijs / verpakking) : '—';
   document.getElementById('artikelVerpakkingUitleg').textContent = Number.isInteger(verpakking) && verpakking > 0 ? `Voor ${verpakking.toLocaleString('nl-NL')} ${verpakking === 1 ? 'stuk' : 'stuks'} per verpakking` : 'Vul een geldig verpakkingsaantal in';
-  const voorraad = getal('artikelVoorraad'), minimum = getal('artikelMinimum');
-  const geldig = Number.isInteger(voorraad) && voorraad >= 0 && Number.isInteger(minimum) && minimum >= 0;
+  const voorraad = getal('artikelVoorraad'), minimum = getal('artikelMinimum'), aanvul = getal('artikelAanvul');
+  const geldig = Number.isInteger(voorraad) && voorraad >= 0 && Number.isInteger(minimum) && minimum >= 0 && Number.isInteger(aanvul) && aanvul >= minimum;
   const status = !geldig ? 'Controleer aantallen' : voorraad >= minimum ? 'Goed' : voorraad <= 0 ? 'Niet op voorraad' : 'Laag';
   const statusEl = document.getElementById('artikelVoorraadStatus');
   statusEl.textContent = status;
   statusEl.classList.toggle('laag', status === 'Laag');
   statusEl.classList.toggle('leeg', status === 'Niet op voorraad');
-  document.getElementById('artikelVoorraadUitleg').textContent = !geldig ? 'Vul hele aantallen van 0 of meer in.' : minimum === 0 ? 'Minimum 0: dit artikel hoeft niet op voorraad te liggen. Ook bij voorraad 0 is de status Goed.' : voorraad < minimum ? `Nog ${(minimum - voorraad).toLocaleString('nl-NL')} stuks nodig om het minimum te bereiken.` : 'De voorraad voldoet aan het ingestelde minimum.';
+  document.getElementById('artikelVoorraadUitleg').textContent = !geldig ? 'Vul hele aantallen van 0 of meer in. Aanvulvoorraad moet minstens gelijk zijn aan het minimum.' : minimum === 0 ? 'Minimum 0: dit artikel hoeft niet op voorraad te liggen. Ook bij voorraad 0 is de status Goed.' : voorraad < minimum ? `Nog ${(aanvul - voorraad).toLocaleString('nl-NL')} stuks nodig om de aanvulvoorraad te bereiken (afgerond op hele verpakkingen).` : 'De voorraad voldoet aan het ingestelde minimum.';
   const gewijzigd = artikelHeeftWijzigingen();
   document.getElementById('artikelWijzigstatus').textContent = gewijzigd ? 'Onopgeslagen wijzigingen' : gekozenArtikelId == null ? 'Nieuw artikel' : 'Alle wijzigingen opgeslagen';
   document.getElementById('artikelWijzigstatus').classList.toggle('gewijzigd', gewijzigd);
@@ -6882,6 +6888,7 @@ function leesArtikelFormulier() {
     pricePerUnit: leesArtikelGetal('artikelPrijs', 'Prijs per verpakking', { minimum: 0, maximum: 10000000, geheel: false }),
     stock: leesArtikelGetal('artikelVoorraad', 'Voorraad', { minimum: 0 }),
     minStock: leesArtikelGetal('artikelMinimum', 'Minimumvoorraad', { minimum: 0 }),
+    targetStock: leesArtikelGetal('artikelAanvul', 'Aanvulvoorraad', { minimum: Number(document.getElementById('artikelMinimum').value) }),
     rack: document.getElementById('artikelStelling').value.trim(),
     xAxis: document.getElementById('artikelXAs').value.trim(),
     yAxis: document.getElementById('artikelYAs').value.trim(),
@@ -7406,7 +7413,7 @@ function getVoorraadTekorten() {
       return min > 0 && Number(item.voorraad || 0) < min;
     })
     .map(item => {
-      const tekort = Number(item.minVoorraad || 0) - Number(item.voorraad || 0);
+      const tekort = Number(item.aanvulVoorraad ?? item.minVoorraad ?? 0) - Number(item.voorraad || 0);
       const step = getCartStep(item);
       const aantal = step > 1 ? Math.ceil(tekort / step) * step : Math.ceil(tekort);
       return { item, tekort, aantal };
@@ -7441,7 +7448,7 @@ function vulVoorraadAan(bevestigd = false) {
 
   const totaal = teVoegen.reduce((som, regel) => som + regel.aantal, 0);
   if(!bevestigd && !confirm(
-    `${teVoegen.length} ${teVoegen.length === 1 ? 'artikel' : 'artikelen'} aanvullen tot de minimumvoorraad?\n` +
+    `${teVoegen.length} ${teVoegen.length === 1 ? 'artikel' : 'artikelen'} aanvullen tot de aanvulvoorraad?\n` +
     `In totaal ${totaal} stuks.\n\n` +
     `Let op: de winkelwagen is gedeeld, je collega's zien dit ook.`
   )) return;
@@ -7562,7 +7569,7 @@ function renderVoorraad(animate = false) {
         </div>
       </div>
       <div><div class="voorraad-cell-label">Voorraad</div><div class="voorraad-cell-value">${escapeHtml(formatNumber(voorraad))} ${escapeHtml(getDisplayUnit(item))}</div></div>
-      <div><div class="voorraad-cell-label">Min</div><div class="voorraad-cell-value subtle">${escapeHtml(formatNumber(min))} ${escapeHtml(getDisplayUnit(item))}</div></div>
+      <div><div class="voorraad-cell-label">Minimum / aanvulvoorraad</div><div class="voorraad-cell-value subtle">${escapeHtml(formatNumber(min))} / ${escapeHtml(formatNumber(item.aanvulVoorraad ?? min))} ${escapeHtml(getDisplayUnit(item))}</div></div>
       <div><div class="voorraad-cell-label">Status</div><span class="voorraad-status-pill ${status.key}">${escapeHtml(status.label)}</span></div>
       <div class="voorraad-pos"><div class="voorraad-cell-label">Locatie</div><div class="voorraad-cell-value subtle">${escapeHtml(locatie)}</div></div>
     </div>`;
@@ -7616,7 +7623,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.2';
+  const fallbackVersion = '1.0.3';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {
@@ -7690,7 +7697,7 @@ const SLASH_COMMANDS = [
   { cmd: '/info',               desc: 'Toon artikelinformatie',   send: 'info over ' },
   { cmd: '/voorraadstand',      desc: 'Vraag een voorraadstand',  send: 'voorraad van ' },
   { cmd: '/zetvoorraad',        desc: 'Pas een voorraadstand aan', send: 'zet voorraad van ' },
-  { cmd: '/aanvullen',          desc: 'Vul tekorten aan tot minimum', send: 'vul voorraad aan tot minimum' },
+  { cmd: '/aanvullen',          desc: 'Vul tekorten aan tot aanvulvoorraad', send: 'vul voorraad aan tot minimum' },
   { cmd: '/sorteerwinkel',      desc: 'Sorteer winkel',           send: 'sorteer winkel op ' },
   { cmd: '/sorteervoorraad',    desc: 'Sorteer voorraad',         send: 'sorteer voorraad op ' },
   { cmd: '/filterwinkel',       desc: 'Filter winkel',            send: 'filter winkel op ' },
