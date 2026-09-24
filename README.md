@@ -23,7 +23,7 @@ Zelfstandige Windows-app voor de binnenploeg van Janssen Bouw, gebaseerd op Buit
 2. Mail: stel `RESEND_API_KEY`, `ORDER_MAIL_FROM` en `ORDER_MAIL_NOTIFY` in bij Supabase Edge Function secrets. Er zijn geen testmails verzonden.
 3. OneDrive/Power Automate: een eigen flow, geheime URL en bijpassende allowlist in `copy-order-confirmation` zijn nog nodig. De PDF-kopieertaak blijft uit totdat dit is ingesteld; gewone PDF-opslag in BinnenApp werkt afzonderlijk.
 4. Automatische updates: ingeschakeld via openbare GitHub Releases. De app toont bij elke start het blauwe splashscreen, controleert op updates en downloadt nieuwe versies op de achtergrond. Installeren gebeurt via de knop Opnieuw opstarten.
-5. De aparte mobiele BuitenApp-site is niet als BinnenApp-site gepubliceerd.
+5. BinnenApp Mobiel staat op https://binnenapp-mobiel.vercel.app. De bron staat in `mobiel/`, gebruikt uitsluitend BinnenApp Supabase en heeft een eigen Vercel-project. Pushmeldingen zijn nog niet geconfigureerd.
 
 ## Ontwikkeling
 

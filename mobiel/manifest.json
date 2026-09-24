@@ -1,0 +1,21 @@
+{
+  "name": "BinnenApp",
+  "short_name": "BinnenApp",
+  "description": "Bestellen en voorraad voor de binnenploeg van Janssen Bouw",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f1",
+  "theme_color": "#1e40af",
+  "lang": "nl",
+  "icons": [
+    {
+      "src": "/BinnenAppLogoWit.png",
+      "sizes": "900x900",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
