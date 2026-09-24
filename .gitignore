@@ -6,3 +6,5 @@ supabase/.temp/
 .env
 .env.*
 !.env.example
+import-20260924/*.html
+import-20260924/*.jpg
