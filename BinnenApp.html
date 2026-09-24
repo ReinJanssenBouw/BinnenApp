@@ -1452,7 +1452,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.6</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.7</span>
       </div>
     </div>
 
@@ -2117,6 +2117,8 @@ body.product-admin .product-admin-btn{display:inline-flex;}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 </button>
 
+<link rel="stylesheet" href="./locaties.css">
+<script src="./locaties.js"></script>
 <script src="./pdf-bekijker.js"></script>
 <dialog class="update-dialoog" id="verplichteUpdate" aria-labelledby="updateTitel" aria-describedby="updateUitleg updateWaarschuwing">
   <div class="update-icoon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 7a7.5 7.5 0 0 1 12.3-1.8L20 8M4 16l2.1 2.8A7.5 7.5 0 0 0 18.4 17"/></svg></div>
@@ -2314,6 +2316,14 @@ let sidebarDragState = null;
 //  NAVIGATION
 // ------------------------------------------------------------
 
+function openLocatieInstellingen() {
+  window.BinnenLocaties.mount(document.getElementById('page-locatie'), {
+    isAdmin: () => isArtikelbeheerder(), isActive: () => currentPage === 'locatie',
+    load: () => window.binnenApp.supabaseRequest('getLocationLayout'),
+    save: (racks, revision) => window.binnenApp.supabaseRequest('saveLocationLayout', {racks,revision})
+  });
+}
+
 function navigate(page) {
   if(!document.getElementById('page-' + page)) page = 'dashboard';
   if(page !== 'winkelwagen') closeShopItemDetail();
@@ -2343,6 +2353,7 @@ function navigate(page) {
 
   to.classList.add('active');
   currentPage = page;
+  if(page === 'locatie') openLocatieInstellingen();
 
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   if(NAV_INDEX[page] !== undefined) document.querySelectorAll('.nav-item')[NAV_INDEX[page]]?.classList.add('active');
@@ -4100,6 +4111,7 @@ function showPageInstant(page) {
     document.querySelectorAll('.nav-item')[NAV_INDEX[page]].classList.add('active');
   }
   currentPage = page;
+  if(page === 'locatie') openLocatieInstellingen();
   updateSidebarIndicator(true);
 }
 
@@ -7628,7 +7640,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.6';
+  const fallbackVersion = '1.0.7';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {
@@ -9005,6 +9017,7 @@ if (document.readyState === 'loading') {
     document.querySelectorAll('.nav-item')[NAV_INDEX[lastPage]].classList.add('active');
   }
   currentPage = lastPage;
+  if(lastPage === 'locatie') openLocatieInstellingen();
   requestAnimationFrame(() => updateSidebarIndicator(true));
 
   if(lastPage === 'winkelwagen')        renderShop();

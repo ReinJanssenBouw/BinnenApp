@@ -583,6 +583,10 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
 
   ipcMain.handle('supabase-request', async (_event, key, payload = {}) => {
     switch (key) {
+      case 'getLocationLayout':
+        return check(await supabase.rpc('binnenapp_get_location_layout'));
+      case 'saveLocationLayout':
+        return check(await supabase.rpc('binnenapp_save_location_layout', {p_racks:payload.racks,p_revision:payload.revision}));
       case 'getProductsAdmin': {
         const producten = check(await supabase.rpc('binnenapp_admin_products')) || [];
         return { items: producten.map(productToLegacyRow) };

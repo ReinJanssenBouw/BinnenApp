@@ -694,7 +694,13 @@ function tekenScherm(bewaarScroll = false) {
   else if (staat.tab === "bestellingen") el.innerHTML = schermBestellingen();
   else if (staat.tab === "voorraad") el.innerHTML = schermVoorraad();
   else if (staat.tab === "retour") el.innerHTML = schermRetour();
-  else if (staat.tab === "locatie") el.innerHTML = "";
+  else if (staat.tab === "locatie") {
+    window.BinnenLocaties.mount(el, {
+      isAdmin: () => staat.beheerder, isActive: () => staat.tab === 'locatie',
+      load: async () => { const {data,error}=await db.rpc('binnenapp_get_location_layout'); if(error)throw error;return data; },
+      save: async (racks,revision) => { const {data,error}=await db.rpc('binnenapp_save_location_layout',{p_racks:racks,p_revision:revision}); if(error)throw error;return data; }
+    });
+  }
   if (bewaarScroll) el.scrollTop = positie;
   else activeerVerschijnAnimaties(el, "scherm");
 }

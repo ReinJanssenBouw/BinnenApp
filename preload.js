@@ -9,7 +9,7 @@ const _prefetchedData = ipcRenderer.sendSync('get-prefetched-data-sync');
 // opnieuw te versturen. Een update mag geen lopende bestelling afbreken.
 const lopendeSchrijfacties = new Set();
 let schrijfActiviteit = 0;
-const leesActies = new Set(['getStock', 'getCart', 'getOrders', 'getProductsAdmin', 'getRetour', 'getCorrections', 'getStatusDatums', 'orderConfirmationPdf', 'orderMailStatus']);
+const leesActies = new Set(['getLocationLayout', 'getStock', 'getCart', 'getOrders', 'getProductsAdmin', 'getRetour', 'getCorrections', 'getStatusDatums', 'orderConfirmationPdf', 'orderMailStatus']);
 let updateHerstartBezig = false;
 
 async function schrijfVerzoek(kanaal, ...waarden) {

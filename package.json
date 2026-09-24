@@ -1,6 +1,6 @@
 {
   "name": "binnenapp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "BinnenApp desktop app",
   "main": "main.js",
   "scripts": {
@@ -36,7 +36,9 @@
       "icon.ico",
       "pdf-bekijker.css",
       "pdf-bekijker.js",
-      "vendor/**/*"
+      "vendor/**/*",
+      "locaties.js",
+      "locaties.css"
     ],
     "nsis": {
       "oneClick": false,
