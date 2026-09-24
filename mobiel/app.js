@@ -1144,7 +1144,6 @@ function lijstVoorraad() {
           ${chip}
           ${p.jb_code ? `<span class="artikel-chip">${esc(p.jb_code)}</span>` : ""}
           <span class="artikel-chip">Minimum ${min} ${esc(eenheid)}</span>
-          <span class="artikel-chip">Aanvulvoorraad ${Number(p.target_stock ?? min)} ${esc(eenheid)}</span>
           ${plek ? `<span class="artikel-chip">${esc(plek)}</span>` : ""}
         </div>
       </div>
@@ -1168,11 +1167,10 @@ function lijstVoorraad() {
       </button>
     </div>
     <div class="voorraad-hint">Pas met &minus; of + aan, of vul het exacte aantal in.</div>
-    ${staat.beheerder ? `<details class="voorraad-grenzen"><summary>Minimum en aanvulvoorraad aanpassen</summary>
-      <p>Onder het minimum bestellen we bij tot de aanvulvoorraad.</p>
+    ${staat.beheerder ? `<details class="voorraad-grenzen"><summary>Minimumvoorraad aanpassen</summary>
+      <p>Onder het minimum bestellen we bij tot de minimumvoorraad.</p>
       <div class="voorraad-grenzen-velden">
         <label>Minimumvoorraad<input id="minimum-${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${min}"></label>
-        <label>Aanvulvoorraad<input id="aanvul-${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${Number(p.target_stock ?? min)}"></label>
       </div><button type="button" class="knop klein" data-grenzen-opslaan="${p.id}">Opslaan</button>
     </details>` : ""}
     </div>`;
@@ -1190,21 +1188,20 @@ async function voorraadGrenzenOpslaan(id, knop) {
   const p = product(Number(id));
   if (!staat.beheerder || !p.id || knop.disabled) return;
   const minimumTekst = $("minimum-" + p.id).value;
-  const aanvulTekst = $("aanvul-" + p.id).value;
-  const minimum = Number(minimumTekst), aanvul = Number(aanvulTekst);
-  if (!minimumTekst || !aanvulTekst || !Number.isInteger(minimum) || !Number.isInteger(aanvul) || minimum < 0 || aanvul < minimum || aanvul > 1000000) {
-    return melden("Vul hele aantallen in. Aanvulvoorraad moet minstens gelijk zijn aan het minimum (max. 1.000.000).");
+  const minimum = Number(minimumTekst);
+  if (!minimumTekst || !Number.isInteger(minimum) || minimum < 0 || minimum > 1000000) {
+    return melden("Vul een heel aantal van 0 tot 1.000.000 in.");
   }
   knop.disabled = true;
   try {
-    const {data, error} = await db.rpc("binnenapp_set_stock_levels", {
-      p_product_id: p.id, p_min_stock: minimum, p_target_stock: aanvul,
-      p_expected_min: Number(p.min_stock || 0), p_expected_target: Number(p.target_stock ?? p.min_stock ?? 0),
+    const {data, error} = await db.rpc("binnenapp_set_min_stock", {
+      p_product_id: p.id, p_min_stock: minimum,
+      p_expected_min: Number(p.min_stock || 0),
     });
     if (error) throw error;
     Object.assign(p, data);
     tekenScherm();
-    melden("Minimum en aanvulvoorraad opgeslagen.");
+    melden("Minimumvoorraad opgeslagen.");
   } catch (error) {
     melden(foutTekst(error));
   } finally { knop.disabled = false; }
@@ -1278,7 +1275,7 @@ function schermVoorraad() {
     </div>
     <div class="sorteer-regel">${sorteerKnopMarkup()}</div>
     ${tekort.length ? `<button class="knop leeg klein" id="aanvulKnop" style="margin-bottom:14px">
-      ${tekort.length} ${tekort.length === 1 ? "artikel" : "artikelen"} aanvullen tot aanvulvoorraad</button>` : ""}
+      ${tekort.length} ${tekort.length === 1 ? "artikel" : "artikelen"} aanvullen tot minimumvoorraad</button>` : ""}
     <div id="lijst">${lijstVoorraad()}</div>
   `;
 }
@@ -2126,7 +2123,7 @@ function voorraadAanvullen() {
   });
   let aantalToegevoegd = 0;
   tekorten.forEach((p) => {
-    const tekort = Number(p.target_stock ?? p.min_stock ?? 0) - Number(p.stock || 0);
+    const tekort = Number(p.min_stock || 0) - Number(p.stock || 0);
     const s = stap(p);
     const nodig = s > 1 ? Math.ceil(tekort / s) * s : Math.ceil(tekort);
     if (nodig > Number(staat.wagen[p.id] || 0)) {

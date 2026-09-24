@@ -4,7 +4,7 @@ for (const s of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new 
 new vm.Script(mobile.replace(/^import .*;\r?\n/,''));
 const desktop=html.slice(html.indexOf('function getVoorraadTekorten()'),html.indexOf('function updateAanvulKnop()'));
 const mob=mobile.slice(mobile.indexOf('function voorraadAanvullen()'),mobile.indexOf('// ── Navigatie'));
-for(const [stock,min,target,pack,expected] of [[5,6,10,1,5],[6,6,10,1,0],[8,6,10,1,0],[5,6,10,4,8],[0,6,10,1,10],[0,0,10,1,0],[5,6,undefined,1,1]]) {
+for(const [stock,min,target,pack,expected] of [[5,6,10,1,1],[6,6,10,1,0],[8,6,10,1,0],[5,6,10,4,4],[0,6,10,1,6],[0,0,10,1,0],[5,6,undefined,1,1]]) {
  const d=vm.createContext({SHOP_ITEMS:[{voorraad:stock,minVoorraad:min,aanvulVoorraad:target}],isShopItemAvailable:()=>true,getCartStep:()=>pack});
  vm.runInContext(desktop,d);
  assert.equal(vm.runInContext('getVoorraadTekorten()[0]?.aantal || 0',d),expected);
@@ -15,4 +15,4 @@ for(const [stock,min,target,pack,expected] of [[5,6,10,1,5],[6,6,10,1,0],[8,6,10
  vm.runInContext('voorraadAanvullen()',m);assert.equal(staat.wagen[1]||0,expected);
  staat.wagen[1]=100;vm.runInContext('voorraadAanvullen()',m);assert.equal(staat.wagen[1],100);
 }
-console.log('GESLAAGD: desktop en mobiel: 5/6/10 → 5, strikte minimumgrens, verpakking afronden, minimum nul, legacy fallback, herhaald aanvullen en bestaande grotere wagen.');
+console.log('GESLAAGD: aanvullen tot minimum op desktop en mobiel; oude aanvulvoorraad genegeerd, verpakking afronden en geen dubbele wagenaantallen.');

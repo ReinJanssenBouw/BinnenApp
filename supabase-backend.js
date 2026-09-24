@@ -152,7 +152,6 @@ function productToLegacyRow(product = {}) {
     EANcode: product.ean_code,
     Voorraad: product.stock,
     MinVoorraad: product.min_stock,
-    AanvulVoorraad: product.target_stock ?? product.min_stock,
     ProductFoto: product.product_image_url,
     BronFoto: product.source_image_url,
     Stelling: product.rack,
@@ -203,8 +202,6 @@ function valideerArtikelPayload(payload = {}) {
     throw new Error('De actuele artikelversie ontbreekt. Ververs artikelbeheer.');
   }
   const minStock = valideerArtikelGetal(payload.minStock, 'Minimumvoorraad');
-  const targetStock = valideerArtikelGetal(payload.targetStock, 'Aanvulvoorraad');
-  if (targetStock < minStock) throw new Error('Aanvulvoorraad moet minstens gelijk zijn aan de minimumvoorraad.');
   return {
     productId,
     expectedUpdatedAt,
@@ -217,7 +214,6 @@ function valideerArtikelPayload(payload = {}) {
     pricePerUnit: valideerArtikelGetal(payload.pricePerUnit, 'Prijs per verpakking', { max: 10000000, geheel: false }),
     stock: valideerArtikelGetal(payload.stock, 'Voorraad'),
     minStock,
-    targetStock,
     productImageUrl: valideerArtikelUrl(payload.productImageUrl, 'De foto-URL'),
     sourceImageUrl: valideerArtikelUrl(payload.sourceImageUrl, 'De originele foto-URL'),
     rack: valideerArtikelTekst(payload.rack, 'Stelling', 64, false) || null,
@@ -593,7 +589,7 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
       }
       case 'saveProduct': {
         const artikel = valideerArtikelPayload(payload);
-        const opgeslagen = check(await supabase.rpc('binnenapp_save_product_met_aanvulvoorraad', {
+        const opgeslagen = check(await supabase.rpc('binnenapp_save_product', {
           p_product_id: artikel.productId,
           p_expected_updated_at: artikel.expectedUpdatedAt,
           p_ean_code: artikel.eanCode,
@@ -605,7 +601,6 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
           p_price_per_unit: artikel.pricePerUnit,
           p_stock: artikel.stock,
           p_min_stock: artikel.minStock,
-            p_target_stock: artikel.targetStock,
           p_product_image_url: artikel.productImageUrl,
           p_source_image_url: artikel.sourceImageUrl,
           p_rack: artikel.rack,
