@@ -221,9 +221,9 @@ function maakUpdateBeheer({
     klok?.unref?.();
   }
   function start() {
-    if (gestart || gestopt || !actief) return;
+    if (gestart || gestopt || !actief) return Promise.resolve();
     gestart = true;
-    controleer().finally(planControle);
+    return controleer().finally(planControle);
   }
 
   // NSIS start een apart proces en meldt startfouten asynchroon. De bestaande

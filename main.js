@@ -15,8 +15,23 @@ let mainReadyToShow = false;
 let startupSyncReady = false;
 let startupShowTimer = null;
 let _backend = null;
+let opstartUpdateActief = false;
+let opstartGegevensGestart = false;
+
+async function startGegevensNaUpdate() {
+  if (opstartGegevensGestart) return;
+  opstartGegevensGestart = true;
+  opstartUpdateActief = false;
+  sendSplash({ type: 'starting' });
+  await loadDataAndStart(_backend);
+}
 
 function sendUpdateStatus(status) {
+  if (opstartUpdateActief) {
+    if (status.fase === 'downloaden') sendSplash({ type: 'downloading', percent: status.percent });
+    if (status.fase === 'installeren') sendSplash({ type: 'installing' });
+    if (status.fout && status.fase === 'gereed') void startGegevensNaUpdate();
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('binnenapp-update-status', status);
   }
@@ -187,11 +202,21 @@ app.whenReady().then(() => {
   splashWindow.webContents.once('did-finish-load', async () => {
     sendSplash({ type: 'version', version: app.getVersion() });
 
-    // De app blijft altijd starten, ook zonder netwerk of tijdens een download.
-    // Updates worden op de achtergrond voorbereid en alleen via de knop herstart.
-    sendSplash({ type: 'starting' });
-    updateBeheer.start();
-    await loadDataAndStart(backend);
+    opstartUpdateActief = true;
+    sendSplash({ type: 'checking-update' });
+    let wachtTimer;
+    // Bij een trage verbinding blijft starten mogelijk. De controle loopt dan
+    // op de achtergrond verder en toont de normale updatemelding.
+    await Promise.race([
+      updateBeheer.start(),
+      new Promise(resolve => { wachtTimer = setTimeout(resolve, 30000); })
+    ]);
+    clearTimeout(wachtTimer);
+    if (updateBeheer.snapshot().fase === 'gereed') {
+      const resultaat = updateBeheer.herstart();
+      if (resultaat.ok) return;
+    }
+    await startGegevensNaUpdate();
   });
 });
 

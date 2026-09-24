@@ -129,6 +129,9 @@ h1 {
       case 'starting':
         statusText.textContent = 'BinnenApp starten...';
         break;
+      case 'checking-update':
+        statusText.textContent = 'Controleren op updates...';
+        break;
       case 'loading-data':
         progressWrap.style.display = 'block';
         statusText.textContent = data.label || 'Gegevens laden...';
