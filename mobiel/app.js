@@ -5,7 +5,7 @@ const SUPABASE_KEY = "sb_publishable_iomMmjLjzETZ_RLIq5bemA_e02lXOOk";
 // Wordt vóór publicatie vervangen door de publieke VAPID-sleutel. De private
 // sleutel blijft uitsluitend als Supabase-secret op de server staan.
 const VAPID_PUBLIC_KEY = "__BINNENAPP_PUSH_NOG_NIET_INGESTELD__";
-const PUSH_TABBLADEN = ["winkel", "wagen", "bestellingen", "voorraad", "retour"];
+const PUSH_TABBLADEN = ["winkel", "wagen", "bestellingen", "voorraad", "retour", "locatie"];
 
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
@@ -679,6 +679,7 @@ function badges() {
 }
 
 const TITELS = {
+  locatie: "Locatie",
   winkel: "Winkel", wagen: "Winkelwagen", bestellingen: "Bestellingen",
   voorraad: "Voorraad", retour: "Retour",
 };
@@ -686,12 +687,14 @@ const TITELS = {
 function tekenScherm(bewaarScroll = false) {
   $("topbarTitel").textContent = TITELS[staat.tab] || "BinnenApp";
   const el = $("scherm");
+  el.classList.toggle("scherm-locatie", staat.tab === "locatie");
   const positie = bewaarScroll ? el.scrollTop : 0;
   if (staat.tab === "winkel") el.innerHTML = schermWinkel();
   else if (staat.tab === "wagen") el.innerHTML = schermWagen();
   else if (staat.tab === "bestellingen") el.innerHTML = schermBestellingen();
   else if (staat.tab === "voorraad") el.innerHTML = schermVoorraad();
   else if (staat.tab === "retour") el.innerHTML = schermRetour();
+  else if (staat.tab === "locatie") el.innerHTML = "";
   if (bewaarScroll) el.scrollTop = positie;
   else activeerVerschijnAnimaties(el, "scherm");
 }

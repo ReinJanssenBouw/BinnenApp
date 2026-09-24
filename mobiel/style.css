@@ -367,7 +367,7 @@ body:has(input:focus,textarea:focus,[contenteditable="true"]:focus) .tabbar::bef
 }
 .tab-indicator{
   position:absolute;z-index:1;left:0;top:5px;bottom:5px;
-  width:var(--tab-breedte,calc((100% - 10px)/5));
+  width:var(--tab-breedte,calc((100% - 10px)/6));
   border:1px solid rgba(255,255,255,.54);border-radius:999px;pointer-events:none;
   background:linear-gradient(145deg,rgba(255,255,255,.48),rgba(226,242,236,.2));
   box-shadow:0 2px 5px rgba(26,52,44,.06),inset 0 1px 0 rgba(255,255,255,.76),
@@ -1033,3 +1033,5 @@ button:disabled{transform:none!important;box-shadow:none;cursor:default;}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
 }
 .voorraad-grenzen{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:13px}.voorraad-grenzen summary{cursor:pointer;color:#2453b8;font-weight:600}.voorraad-grenzen p{color:#64748b;margin:10px 0}.voorraad-grenzen-velden{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.voorraad-grenzen-velden label{min-width:0;font-weight:600}.voorraad-grenzen-velden input{display:block;box-sizing:border-box;width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:16px}
+
+.scherm.scherm-locatie{background:#fff;}
