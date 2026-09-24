@@ -585,6 +585,8 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
     switch (key) {
       case 'getLocationLayout':
         return check(await supabase.rpc('binnenapp_get_location_layout'));
+      case 'assignProductLocation':
+        return check(await supabase.rpc('binnenapp_assign_product_location', payload));
       case 'saveLocationLayout':
         return check(await supabase.rpc('binnenapp_save_location_layout', {p_racks:payload.racks,p_revision:payload.revision}));
       case 'getProductsAdmin': {

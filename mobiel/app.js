@@ -697,6 +697,7 @@ function tekenScherm(bewaarScroll = false) {
   else if (staat.tab === "locatie") {
     window.BinnenLocaties.mount(el, {
       isAdmin: () => staat.beheerder, isActive: () => staat.tab === 'locatie',
+      assign: async payload => { const {data,error}=await db.rpc('binnenapp_assign_product_location',payload); if(error)throw error;return data; },
       load: async () => { const {data,error}=await db.rpc('binnenapp_get_location_layout'); if(error)throw error;return data; },
       save: async (racks,revision) => { const {data,error}=await db.rpc('binnenapp_save_location_layout',{p_racks:racks,p_revision:revision}); if(error)throw error;return data; }
     });

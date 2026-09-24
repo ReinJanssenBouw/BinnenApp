@@ -1452,7 +1452,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.8</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.9</span>
       </div>
     </div>
 
@@ -2320,6 +2320,7 @@ function openLocatieInstellingen() {
   window.BinnenLocaties.mount(document.getElementById('page-locatie'), {
     isAdmin: () => isArtikelbeheerder(), isActive: () => currentPage === 'locatie',
     load: () => window.binnenApp.supabaseRequest('getLocationLayout'),
+    assign: payload => window.binnenApp.supabaseRequest('assignProductLocation', payload),
     save: (racks, revision) => window.binnenApp.supabaseRequest('saveLocationLayout', {racks,revision})
   });
 }
@@ -7640,7 +7641,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.8';
+  const fallbackVersion = '1.0.9';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {
