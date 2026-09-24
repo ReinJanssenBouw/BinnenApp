@@ -1,8 +1,9 @@
 """Strakkere uitsnede: alleen lege marge verwijderen, productpixels behouden."""
 from pathlib import Path
+import sys
 from PIL import Image
 root=Path(__file__).resolve().parent.parent
-for code in ['101296','237262']:
+for code in (sys.argv[1:] or ['101296','237262']):
     source=Image.open(root/f'mobiel/product-images/transparant/{code}.png').convert('RGBA')
     product=source.crop(source.getbbox())
     side=max(product.size)+20
