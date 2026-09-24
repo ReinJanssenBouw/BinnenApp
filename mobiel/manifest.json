@@ -12,8 +12,14 @@
   "lang": "nl",
   "icons": [
     {
-      "src": "/BinnenAppLogoWit.png",
-      "sizes": "900x900",
+      "src": "/binnenapp-icoon-blauw-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/binnenapp-icoon-blauw-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
