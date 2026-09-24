@@ -2266,7 +2266,7 @@ $("tabbar").addEventListener("click", (e) => {
     return;
   }
   const knop = e.target.closest(".tab");
-  if (!knop) return;
+  if (!knop || knop.dataset.tab === staat.tab) return;
   staat.tab = knop.dataset.tab;
   staat.zoek = "";
   zetTab();

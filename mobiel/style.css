@@ -390,6 +390,7 @@ body:has(input:focus,textarea:focus,[contenteditable="true"]:focus) .tabbar::bef
 .tab svg{width:20px;height:20px;stroke-width:2.15;filter:drop-shadow(0 1px 0 rgba(255,255,255,.54));transition:transform .22s ease;}
 .tab>span{transition:transform .22s ease;}
 .tab:active{transform:scale(.98);background:rgba(255,255,255,.2);}
+.tab.actief:active{transform:none;background:transparent;}
 .tab.actief{
   color:var(--teal-donker);border-color:transparent;background:transparent;box-shadow:none;
 }
