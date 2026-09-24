@@ -1381,7 +1381,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
   </div>
 
   <nav class="sidebar-nav">
-    <span class="sidebar-nav-indicator" role="slider" tabindex="0" aria-label="Scherm kiezen" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1" aria-valuetext="Dashboard" title="Sleep om van scherm te wisselen"></span>
+    <span class="sidebar-nav-indicator" role="slider" tabindex="0" aria-label="Scherm kiezen" aria-valuemin="1" aria-valuemax="9" aria-valuenow="1" aria-valuetext="Dashboard" title="Sleep om van scherm te wisselen"></span>
     <div class="nav-item active" onclick="navigate(&#39;dashboard&#39;)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
       Dashboard
@@ -1419,6 +1419,11 @@ body.product-admin .product-admin-btn{display:inline-flex;}
       <span class="nav-badge" id="retourBadge" style="display:none;">0</span>
       <span class="nav-keybind" id="kb-nav-retour"></span>
     </div>
+    <div class="nav-item" onclick="navigate(&#39;locatie&#39;)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      Locatie
+      <span class="nav-keybind" id="kb-nav-locatie"></span>
+    </div>
     <div class="nav-item" onclick="navigate(&#39;instellingen&#39;)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       Instellingen
@@ -1437,6 +1442,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
 
 <!-- PAGES -------------------- -->
 <div class="pages">
+  <div class="page" id="page-locatie" aria-label="Locatie" style="background:#fff;"></div>
 
   <!-- Dashboard -------------------- -->
   <div class="page active" id="page-dashboard">
@@ -1446,7 +1452,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.5</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.6</span>
       </div>
     </div>
 
@@ -7622,7 +7628,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.5';
+  const fallbackVersion = '1.0.6';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {
@@ -8522,6 +8528,7 @@ const NAV_PAGES = [
   { key:'bestelgeschiedenis', label:'Bestelgeschiedenis', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3"/><path d="M12 7v5l3 2"/></svg>' },
   { key:'voorraad', label:'Voorraad', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>' },
   { key:'retour', label:'Retour', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>' },
+  { key:'locatie', label:'Locatie', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>' },
   { key:'instellingen', label:'Instellingen', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' },
 ];
 
