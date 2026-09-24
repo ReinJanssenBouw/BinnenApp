@@ -1000,6 +1000,35 @@ button:disabled{transform:none!important;box-shadow:none;cursor:default;}
   .sorteer-keuze.in-filter .sorteer-pijl{display:none;}
 }
 
+/* Tablets: benut de schermbreedte zonder de vertrouwde navigatie te verplaatsen. */
+@media (min-width:768px){
+  .app{max-width:1280px;}
+  .topbar{padding-left:28px;padding-right:28px;}
+  .scherm{min-height:0;padding:24px 28px calc(var(--tab-h) + var(--veilig-onder) + 32px);}
+  #lijst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch;}
+  #lijst>.telling,#lijst>.lege-staat{grid-column:1/-1;}
+  #lijst>.telling{margin-bottom:0;}
+  #lijst>.kaart{min-width:0;margin-bottom:0;display:flex;flex-direction:column;}
+  #lijst>.kaart .artikel{flex:1;}
+  .artikel-naam{overflow-wrap:anywhere;}
+  .artikel-foto{width:76px;height:76px;}
+  .topbar-knop,.scan-knop,.aantal-knop,.voorraad-knop,.voorraad-opslaan,.scanner-sluit{min-width:44px;min-height:44px;}
+  .aantal-veld,.voorraad-invoer{min-height:44px;}
+  .zoekbalk{min-height:54px;}
+  input,select,textarea{font-size:16px;}
+  .filter-rij{gap:14px;}
+  .tabbar{width:min(760px,calc(100% - 48px));height:72px;bottom:calc(12px + var(--veilig-onder));}
+  .tab{font-size:12px;gap:5px;}
+  .tab svg{width:23px;height:23px;}
+  .blad{align-items:center;justify-content:center;padding:24px;}
+  .blad-inhoud{max-width:760px;max-height:calc(100dvh - 48px - var(--veilig-boven) - var(--veilig-onder));padding:20px 28px 28px;border:1px solid rgba(255,255,255,.7);border-radius:26px;overscroll-behavior:contain;}
+  .login-box{max-width:440px;padding:36px;}
+}
+@media (min-width:1100px){
+  #lijst{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .scherm{padding-left:32px;padding-right:32px;}
+}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
 }
