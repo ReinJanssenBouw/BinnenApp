@@ -7,21 +7,21 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#eef3f1",
+  "background_color": "#1e40af",
   "theme_color": "#1e40af",
   "lang": "nl",
   "icons": [
     {
-      "src": "/binnenapp-icoon-blauw-192.png",
+      "src": "/binnenapp-icoon-blauw-192.png?v=android-2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/binnenapp-icoon-blauw-512.png",
+      "src": "/binnenapp-icoon-blauw-512.png?v=android-2",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
