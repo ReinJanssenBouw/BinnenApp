@@ -1,8 +1,9 @@
 from pathlib import Path
+import sys
 import numpy as np
 from PIL import Image, ImageDraw
 root=Path(__file__).resolve().parent.parent
-for code in ['3404675','3420669']:
+for code in (sys.argv[1:] or ['3404675','3420669']):
     source=Image.open(root/f'foto-bewerking/originelen/{code}-foto2.jpg').convert('RGB')
     side=max(source.size)
     square=Image.new('RGB',(side,side),'white')
