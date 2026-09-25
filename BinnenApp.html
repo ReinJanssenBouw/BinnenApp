@@ -1442,7 +1442,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
 
 <!-- PAGES -------------------- -->
 <div class="pages">
-  <div class="page" id="page-locatie" aria-label="Locatie" style="background:#fff;"></div>
+  <div class="page" id="page-locatie" aria-label="Locatie" style="background:#f2f6fb;"></div>
 
   <!-- Dashboard -------------------- -->
   <div class="page active" id="page-dashboard">
@@ -1452,7 +1452,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.9</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.10</span>
       </div>
     </div>
 
@@ -7641,7 +7641,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.9';
+  const fallbackVersion = '1.0.10';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {
