@@ -19,7 +19,7 @@
         <nav class="loc-rack-nav" aria-label="Stellingen">${state.racks.map((rack,index)=>`<button type="button" data-action="select-rack" data-rack="${index}" class="loc-rack-tab ${rack.id===state.preview?'is-active':''}" aria-pressed="${rack.id===state.preview}">${rackIcon}<span>${esc(rack.name)}</span></button>`).join('')}${admin()?`<button type="button" data-action="add" class="loc-add" ${!state.loaded||state.busy?'disabled':''}>＋ Stelling</button>`:''}</nav>
         <div class="loc-message" role="status">${esc(state.message)}</div>
         <div class="loc-workspace ${state.selected?'has-selection':''}"><div class="loc-racks">${r?`<section class="loc-rack" data-rack="${i}">
-          <header class="loc-rack-heading"><div><span class="loc-eyebrow">STELLING</span><h2>${esc(r.name)}</h2><p>${occupied} van ${total} vakken gevuld <span>·</span> ${placed.length} producten</p></div>${admin()?`<button type="button" data-action="configure" aria-expanded="${state.editing}">${state.editing?'Instellingen sluiten':'Indeling aanpassen'}</button>`:''}</header>
+          <header class="loc-rack-heading"><div><span class="loc-eyebrow">STELLING</span><h2>${esc(r.name)}</h2><p>${occupied} van ${total} vakken gevuld <span>·</span> ${placed.length} producten</p></div>${api.openAR?`<button type="button" data-action="ar" ${state.busy?'disabled':''}>AR-proef</button>`:''}${admin()?`<button type="button" data-action="configure" aria-expanded="${state.editing}">${state.editing?'Instellingen sluiten':'Indeling aanpassen'}</button>`:''}</header>
           <div class="loc-settings" ${state.editing?'':'hidden'}><div class="loc-fields"><label>Naam stelling<input data-field="name" value="${esc(r.name)}" maxlength="64" ${!admin()||state.busy?'disabled':''}></label><label>Aantal rijen (Y)<input data-field="rows" value="${esc(r.rows)}" type="number" inputmode="numeric" min="1" max="50" step="1" ${!admin()||state.busy?'disabled':''}></label></div>
           <p class="loc-settings-caption">Productkolommen per rij</p><div class="loc-row-columns">${Array.from({length:Math.min(50,Math.max(0,Number(r.rows)||0))},(_,y)=>`<label><span>Rij Y${y+1}</span><input aria-label="Productkolommen rij Y${y+1}" data-field="rowColumns" data-y="${y}" value="${esc(r.rowColumns?.[y]??r.columns??1)}" type="number" inputmode="numeric" min="1" max="50" step="1" ${!admin()||state.busy?'disabled':''}></label>`).join('')}</div><div class="loc-row-actions"><button type="button" data-action="preview">Voorbeeld bijwerken</button><button type="button" data-action="remove" class="loc-remove" ${state.busy?'disabled':''}>Stelling verwijderen</button></div></div>
           <div class="loc-map-heading"><span>VOORAANZICHT</span><div><i></i> Gevuld <i class="loc-dot-empty"></i> Leeg</div></div>${preview(r)}
@@ -82,6 +82,13 @@
     el.addEventListener('click',async e=>{
       const button=e.target.closest('[data-action]');if(!button||!button.closest('[data-loc-root]')||button.disabled||state.busy)return;
       const action=button.dataset.action, index=Number(button.closest('[data-rack]')?.dataset.rack);
+      if(action==='ar'){
+        if(state.dirty){state.message='Sla eerst je indeling op voordat je AR opent.';render();return;}
+        state.busy=true;render();
+        try{const fresh=await api.load();const rack=fresh.racks.find(r=>r.id===state.preview);if(!rack)throw new Error('Deze stelling bestaat niet meer. Laad de locaties opnieuw.');api.openAR({rack,products:fresh.products||[]});}
+        catch(error){state.message=error.message||'AR openen mislukt.';}
+        finally{state.busy=false;render();}return;
+      }
       if(action==='configure'){state.editing=!state.editing;render();return;}
       if(action==='select-rack'){state.preview=state.racks[index].id;state.selected=null;state.query='';render();return;}
       if(action==='close-cell'){state.selected=null;render();return;}

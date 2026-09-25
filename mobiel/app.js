@@ -697,6 +697,7 @@ function tekenScherm(bewaarScroll = false) {
   else if (staat.tab === "locatie") {
     window.BinnenLocaties.mount(el, {
       isAdmin: () => staat.beheerder, isActive: () => staat.tab === 'locatie',
+      openAR: openLocatieAR,
       assign: async payload => { const {data,error}=await db.rpc('binnenapp_assign_product_location',payload); if(error)throw error;return data; },
       load: async () => { const {data,error}=await db.rpc('binnenapp_get_location_layout'); if(error)throw error;return data; },
       save: async (racks,revision) => { const {data,error}=await db.rpc('binnenapp_save_location_layout',{p_racks:racks,p_revision:revision}); if(error)throw error;return data; }
@@ -2562,3 +2563,17 @@ start().catch((e) => {
   $("login").classList.remove("hidden");
   $("loginFout").textContent = foutTekst(e);
 });
+
+// Eigen iframe houdt camera en AR-renderer los van de overige app.
+function openLocatieAR(data) {
+  if(document.getElementById('locatieAR'))return;
+  const frame=document.createElement('iframe');frame.id='locatieAR';frame.title='BinnenApp AR-proef';frame.allow='camera';
+  frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#f2f6fb';
+  const close=()=>{window.removeEventListener('message',receive);frame.remove();};
+  const receive=event=>{
+    if(event.source!==frame.contentWindow||event.origin!==location.origin)return;
+    if(event.data?.type==='binnenapp-ar-ready')frame.contentWindow.postMessage({type:'binnenapp-ar-data',...data},location.origin);
+    if(event.data?.type==='binnenapp-ar-close')close();
+  };
+  window.addEventListener('message',receive);frame.src='/ar/index.html?v=1';document.body.append(frame);
+}

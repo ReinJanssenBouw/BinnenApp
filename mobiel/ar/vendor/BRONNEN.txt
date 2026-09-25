@@ -1,0 +1,4 @@
+A-Frame 1.6.0: https://aframe.io/releases/1.6.0/aframe.min.js
+AR.js 3.4.7: https://github.com/AR-js-org/AR.js/tree/3.4.7
+Inclusief camera_para.dat, patt.hiro en ../hiro.png uit dezelfde AR.js-versie.
+Licenties bijgevoegd. Cameraverwerking gebeurt op het apparaat.
