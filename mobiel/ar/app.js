@@ -80,12 +80,12 @@
     if(settings.mode==='real')try{localStorage.setItem('binnenapp-ar-'+data.rack.id,JSON.stringify(settings));}catch{}
     const current=++session;starting=true;$('start').disabled=true;$('start').textContent='AR laden…';tell('AR voorbereiden…');
     try{
-      await loadScript('vendor/aframe-1.6.0.min.js');await loadScript('vendor/aframe-ar-3.4.7.js');
+      await loadScript('/ar/vendor/aframe-1.6.0.min.js');await loadScript('/ar/vendor/aframe-ar-3.4.7.js');
       if(current!==session)return;
       document.body.classList.add('running');$('setup').hidden=true;$('live').hidden=false;
       scene=document.createElement('a-scene');scene.setAttribute('embedded','');scene.setAttribute('vr-mode-ui','enabled: false');scene.setAttribute('renderer','alpha: true; antialias: true');scene.setAttribute('device-orientation-permission-ui','enabled: false');
-      scene.setAttribute('arjs','sourceType: webcam; debugUIEnabled: false; detectionMode: mono; cameraParametersUrl: vendor/camera_para.dat; maxDetectionRate: 30;');
-      const marker=document.createElement('a-marker');marker.setAttribute('type','pattern');marker.setAttribute('url','vendor/patt.hiro');marker.setAttribute('size','1');marker.setAttribute('emitevents','true');
+      scene.setAttribute('arjs','sourceType: webcam; debugUIEnabled: false; detectionMode: mono; cameraParametersUrl: /ar/vendor/camera_para.dat; maxDetectionRate: 30;');
+      const marker=document.createElement('a-marker');marker.setAttribute('type','pattern');marker.setAttribute('url','/ar/vendor/patt.hiro');marker.setAttribute('size','1');marker.setAttribute('emitevents','true');
       marker.addEventListener('markerFound',()=>{if(current===session){clearTimeout(watchdog);tell('Marker herkend · houd hem in beeld');}});
       marker.addEventListener('markerLost',()=>{if(current===session)tell('Marker uit beeld · richt de camera weer op het hele vierkant');});
       scene.append(marker);const camera=document.createElement('a-entity');camera.setAttribute('camera','');scene.append(camera);
