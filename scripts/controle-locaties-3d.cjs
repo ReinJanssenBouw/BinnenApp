@@ -71,6 +71,44 @@ app.whenReady().then(async()=>{
  await w.webContents.executeJavaScript(`document.querySelector('[data-l3="plan"]').click();document.querySelector('[data-l3="save"]').click()`);await pause();await w.webContents.executeJavaScript(`document.querySelector('[data-l3="reload"]').click()`);await pause();const reloaded=await pose();assert.equal(reloaded.x,zoomEnd.x);assert.equal(reloaded.z,zoomEnd.z);assert(!reloaded.dirty);
  await w.webContents.executeJavaScript(`document.querySelector('[data-l3="fit"]').click()`);
  console.log('GESLAAGD: echte muisdrag, gedraaide stelling, zoom, Escape, 3D-consistentie en opgeslagen positie herladen.');
+ async function setRack(values){
+  await w.webContents.executeJavaScript(`(()=>{for(const [key,value] of Object.entries(${JSON.stringify(values)})){const input=document.querySelector('[data-dim="'+key+'"]');input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}})()`);await pause();
+ }
+ async function wallDrag(targets,cancel=false){
+  const start=await pose();
+  const point=await w.webContents.executeJavaScript(`(()=>{const el=document.querySelector('.l3-plan-rack.is-selected'),b=el.getBoundingClientRect();return {x:Math.round(b.x+b.width/2),y:Math.round(b.y+b.height/2),scale:el.ownerSVGElement.getScreenCTM().a};})()`);
+  w.webContents.focus();w.webContents.sendInputEvent({type:'mouseMove',x:point.x,y:point.y});await pause();
+  w.webContents.sendInputEvent({type:'mouseDown',x:point.x,y:point.y,button:'left',clickCount:1});await pause();
+  const states=[];let x,y;
+  for(const target of targets){
+   x=Math.round(point.x+(target.x-start.x)*point.scale);y=Math.round(point.y+(target.z-start.z)*point.scale);
+   w.webContents.sendInputEvent({type:'mouseMove',x,y,button:'left',modifiers:['leftButtonDown']});await pause();
+   states.push({...await pose(),guide:await w.webContents.executeJavaScript(`document.querySelector('.l3-plan-snap')?.getAttribute('d')||''`)});
+   if(target.x===236.5&&target.z===206)fs.writeFileSync(path.resolve(__dirname,'../dist/locatie-muurmagneet.png'),(await w.webContents.capturePage()).toPNG());
+  }
+  if(cancel){w.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});await pause();w.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});}
+  w.webContents.sendInputEvent({type:'mouseUp',x,y,button:'left',clickCount:1});await pause();return states;
+ }
+ // Keep the target rack away from other racks and test the actual pointer handlers.
+ await setRack({width:180,depth:60,angle:0,x:0,z:0});
+ for(const [axis,limit] of [['x',241.5],['z',211]])for(const side of [-1,1]){
+  await setRack({x:0,z:0});
+  const [snapped]=await wallDrag([{x:0,z:0,[axis]:side*(limit-5)}]);
+  assert(Math.abs(snapped[axis]-side*limit)<1e-8,`Flush snap ${axis} ${side}`);assert(snapped.guide,'Wall guide while snapping');
+ }
+ await setRack({x:0,z:0});const corner=await wallDrag([{x:236.5,z:206}]);assert.equal(corner[0].x,241.5);assert.equal(corner[0].z,211);
+ await w.webContents.executeJavaScript(`document.querySelector('[data-l3="save"]').click()`);await pause();await w.webContents.executeJavaScript(`document.querySelector('[data-l3="reload"]').click()`);await pause();assert.deepEqual(await pose(),{x:241.5,z:211,dirty:false},'Snapped corner persists');
+ await setRack({x:0,z:0});const lock=await wallDrag([{x:237,z:0},{x:229.5,z:25},{x:214,z:25}]);
+ assert.equal(lock[0].x,241.5);assert.equal(lock[1].x,241.5,'Hysteresis avoids jitter and allows sliding along wall');assert(Math.abs(lock[1].z-25)<2);assert(Math.abs(lock[2].x-214)<2,'Pull away to release');assert(!lock[2].guide,'Guide cleared after release');
+ await setRack({angle:37,x:0,z:0});const extX=(Math.cos(37*Math.PI/180)*180+Math.sin(37*Math.PI/180)*60)/2;
+ const rotated=await wallDrag([{x:331.5-extX-4,z:0}]);assert(Math.abs(rotated[0].x+extX-331.5)<1e-8,'Rotated rack edge is exactly flush');
+ await setRack({angle:0,x:0,z:0});await w.webContents.executeJavaScript(`document.querySelector('[data-l3="plan-zoom"][data-factor="1.25"]').click()`);
+ const zoomSnap=await wallDrag([{x:-237,z:0}]);assert.equal(zoomSnap[0].x,-241.5,'Zoom-independent snap');await w.webContents.executeJavaScript(`document.querySelector('[data-l3="fit"]').click()`);
+ await setRack({x:0,z:0});const beforeCancel=await pose();await wallDrag([{x:237,z:0}],true);assert.deepEqual(await pose(),beforeCancel,'Escape cancels wall snap');
+ assert(await w.webContents.executeJavaScript(`!document.querySelector('.l3-plan-snap')`),'Guide removed on cancel');
+ await setRack({width:800,x:0,z:0});const oversized=await wallDrag([{x:1,z:206}]);assert(!oversized[0].guide,'Oversized rack cannot fit or snap inside room');
+ await setRack({width:180,angle:0,x:0,z:0});
+ console.log('GESLAAGD: vier muren, hoek, magneet vasthouden/loslaten, langs muur schuiven, draaihoek, zoom, opslaan en annuleren.');
  await new Promise(r=>setTimeout(r,800));fs.writeFileSync(path.resolve(__dirname,'../dist/locatie-3d-desktop.png'),(await w.webContents.capturePage()).toPNG());
  for(const width of [1024,1920]){w.setSize(width,950);await new Promise(r=>setTimeout(r,120));assert(await w.webContents.executeJavaScript("document.querySelector('#page-locatie').scrollWidth<=document.querySelector('#page-locatie').clientWidth"),'Desktop overflow '+width);}
  await w.webContents.executeJavaScript('testSetAdmin()');await new Promise(r=>setTimeout(r,150));

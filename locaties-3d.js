@@ -72,17 +72,42 @@
       root.classList.toggle('l3-can-drag',admin());
       $('.l3-header h1').textContent=state.plan?'Plattegrond van je magazijn':'Je magazijn in 3D';
       if($('.l3-room-settings'))$('.l3-room-settings').hidden=state.plan;
-      if($('.l3-rail-note'))$('.l3-rail-note').textContent=state.plan?(admin()?'Sleep een stelling naar de gewenste plek en klik op Model opslaan.':'Klik op een stelling om deze te bekijken.'):'Klik op een vak in het model om producten toe te voegen.';
+      if($('.l3-rail-note'))$('.l3-rail-note').textContent=state.plan?(admin()?'Sleep een stelling naar de gewenste plek. Dicht bij een muur klikt hij vast. Klik daarna op Model opslaan.':'Klik op een stelling om deze te bekijken.'):'Klik op een vak in het model om producten toe te voegen.';
       $('.l3-canvas').hidden=state.plan;$('.l3-plan').hidden=!state.plan;
       $('[data-l3="plan"]').setAttribute('aria-pressed',String(state.plan));
       $('[data-view="perspective"]').setAttribute('aria-pressed',String(!state.plan));
       for(const e of root.querySelectorAll('[data-view="front"],[data-view="top"],[data-l3="overview"]'))e.hidden=state.plan;
       for(const e of root.querySelectorAll('[data-l3="plan-zoom"]'))e.hidden=!state.plan;
-      $('.l3-stage-caption span').textContent=state.plan?(admin()?'Sleep: verplaatsen · Esc: annuleren. Dikke blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
+      $('.l3-stage-caption span').textContent=state.plan?(admin()?'Sleep: verplaatsen · Magneet bij muren · Esc: annuleren. Blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
     }
     function draw(){showView();if(state.data&&!validation()){if(state.plan)planView();else view?.update(state.data,state,state.overview);}}
     root.addEventListener('keydown',e=>{if(!planDrag&&(e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
     const planHost=$('.l3-plan');
+    function snapToWalls(g,drag){
+      const a=g.angle*Math.PI/180;
+      const ex=(Math.abs(Math.cos(a))*g.width+Math.abs(Math.sin(a))*g.depth)/2;
+      const ez=(Math.abs(Math.sin(a))*g.width+Math.abs(Math.cos(a))*g.depth)/2;
+      const limits={x:331.5-ex,z:241-ez},raw={x:g.x,z:g.z};
+      const walls=[];
+      for(const axis of ['x','z']){
+        const other=axis==='x'?'z':'x',limit=limits[axis];
+        let side=drag.snap?.[axis]||0;
+        if(limit<0||limits[other]<0||Math.abs(raw[other])>limits[other]+10)side=0;
+        else if(!side||Math.abs(raw[axis]-side*limit)>18){
+          side=Math.abs(raw[axis]+limit)<=10?-1:Math.abs(raw[axis]-limit)<=10?1:0;
+        }
+        drag.snap[axis]=side;
+        if(side){g[axis]=side*limit;walls.push(axis==='x'?(side<0?'links':'rechts'):(side<0?'boven':'onder'));}
+      }
+      planHost.querySelector('.l3-plan-snap')?.remove();
+      if(walls.length){
+        const paths={links:'M -331.5 -241 V 241',rechts:'M 331.5 -241 V 241',boven:'M -331.5 -241 H 331.5',onder:'M -331.5 241 H 331.5'};
+        const guide=document.createElementNS('http://www.w3.org/2000/svg','path');
+        guide.setAttribute('class','l3-plan-snap');guide.setAttribute('d',walls.map(w=>paths[w]).join(' '));
+        drag.node.ownerSVGElement.append(guide);
+      }
+      return walls.length;
+    }
     function dragMove(e){
       const drag=planDrag;if(!drag||e.pointerId!==drag.pointerId)return;
       if(!admin()||state.busy||!state.plan){endDrag(true);return;}
@@ -92,10 +117,11 @@
       const g=state.data.geometry.racks[drag.rackId];
       g.x=Math.max(-5000,Math.min(5000,Math.round((drag.x+p.x-drag.start.x)*10)/10));
       g.z=Math.max(-5000,Math.min(5000,Math.round((drag.z+p.y-drag.start.y)*10)/10));
+      const snapped=snapToWalls(g,drag);
       drag.node.setAttribute('transform',`translate(${g.x} ${g.z}) rotate(${-g.angle})`);
       drag.node.classList.toggle('is-outside',!!roomWarning(g));
       for(const key of ['x','z']){const input=$(`[data-dim="${key}"][data-scope="rack"]`);if(input)input.value=g[key];}
-      state.dirty=true;state.message=`Positie: X ${g.x} cm · Z ${g.z} cm. Sla het model op om de verplaatsing te bewaren.`;status();
+      state.dirty=true;state.message=`${snapped?'Vastgeklikt aan de muur · ':''}Positie: X ${Number(g.x.toFixed(1))} cm · Z ${Number(g.z.toFixed(1))} cm. Sla het model op om de verplaatsing te bewaren.`;status();
     }
     function endDrag(cancel=false){
       const drag=planDrag;if(!drag)return;
@@ -115,7 +141,7 @@
       const inverse=matrix.inverse(),g=state.data.geometry.racks[node.dataset.id];if(!g)return;
       try{planHost.setPointerCapture(e.pointerId);}catch{return;}
       e.preventDefault();
-      planDrag={node,rackId:node.dataset.id,pointerId:e.pointerId,inverse,start:new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse),clientX:e.clientX,clientY:e.clientY,x:g.x,z:g.z,dirty:state.dirty,message:state.message,moved:false};
+      planDrag={node,rackId:node.dataset.id,pointerId:e.pointerId,inverse,start:new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse),clientX:e.clientX,clientY:e.clientY,x:g.x,z:g.z,dirty:state.dirty,message:state.message,moved:false,snap:{x:0,z:0}};
       state.rackId=node.dataset.id;state.x=null;state.y=null;state.productId=null;state.query='';
       for(const item of planHost.querySelectorAll('.l3-plan-rack')){const selected=item===node;item.classList.toggle('is-selected',selected);item.setAttribute('aria-pressed',String(selected));}
       node.focus({preventScroll:true});planHost.classList.add('is-dragging');renderRacks();inspector();status();showView();
