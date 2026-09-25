@@ -1,6 +1,7 @@
 ﻿const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { createLocationSceneStore } = require('./location-scene-store');
 
 const SUPABASE_URL = 'https://guurncfxhcxwvgnzoeyp.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_iomMmjLjzETZ_RLIq5bemA_e02lXOOk';
@@ -234,6 +235,8 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
       detectSessionInUrl: false
     }
   });
+
+  const locationScene = createLocationSceneStore({supabase,directory:app.getPath('userData'),projectUrl:SUPABASE_URL});
 
   // ─── Prefetch cache ──────────────────────────────────────────────────
   const _cache = {};
@@ -583,6 +586,10 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
 
   ipcMain.handle('supabase-request', async (_event, key, payload = {}) => {
     switch (key) {
+      case 'getLocationScene':
+        return locationScene.load();
+      case 'saveLocationScene':
+        return locationScene.save(payload);
       case 'getLocationLayout':
         return check(await supabase.rpc('binnenapp_get_location_layout'));
       case 'assignProductLocation':

@@ -1452,7 +1452,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.10</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.11</span>
       </div>
     </div>
 
@@ -2119,6 +2119,8 @@ body.product-admin .product-admin-btn{display:inline-flex;}
 
 <link rel="stylesheet" href="./locaties.css">
 <script src="./locaties.js"></script>
+<link rel="stylesheet" href="./locaties-3d.css">
+<script src="./locaties-3d.js"></script>
 <script src="./pdf-bekijker.js"></script>
 <dialog class="update-dialoog" id="verplichteUpdate" aria-labelledby="updateTitel" aria-describedby="updateUitleg updateWaarschuwing">
   <div class="update-icoon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 7a7.5 7.5 0 0 1 12.3-1.8L20 8M4 16l2.1 2.8A7.5 7.5 0 0 0 18.4 17"/></svg></div>
@@ -2317,9 +2319,11 @@ let sidebarDragState = null;
 // ------------------------------------------------------------
 
 function openLocatieInstellingen() {
-  window.BinnenLocaties.mount(document.getElementById('page-locatie'), {
+  window.BinnenLocaties3D.mount(document.getElementById('page-locatie'), {
     isAdmin: () => isArtikelbeheerder(), isActive: () => currentPage === 'locatie',
     load: () => window.binnenApp.supabaseRequest('getLocationLayout'),
+    loadScene: () => window.binnenApp.supabaseRequest('getLocationScene'),
+    saveScene: payload => window.binnenApp.supabaseRequest('saveLocationScene', payload),
     assign: payload => window.binnenApp.supabaseRequest('assignProductLocation', payload),
     save: (racks, revision) => window.binnenApp.supabaseRequest('saveLocationLayout', {racks,revision})
   });
@@ -7641,7 +7645,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.10';
+  const fallbackVersion = '1.0.11';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {

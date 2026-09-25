@@ -1,6 +1,6 @@
 {
   "name": "binnenapp",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "BinnenApp desktop app",
   "main": "main.js",
   "scripts": {
@@ -38,7 +38,11 @@
       "pdf-bekijker.js",
       "vendor/**/*",
       "locaties.js",
-      "locaties.css"
+      "locaties.css",
+      "locaties-3d.js",
+      "locaties-3d.css",
+      "locaties-3d-view.mjs",
+      "location-scene-store.js"
     ],
     "nsis": {
       "oneClick": false,
