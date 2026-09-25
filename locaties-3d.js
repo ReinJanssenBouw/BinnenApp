@@ -1,13 +1,15 @@
 /* Desktop-editor. Productlocaties blijven gedeeld met de mobiele vakkenlijst. */
 (() => {
   const instances=new WeakMap();
+  const roomHeightKey='binnenapp-room-height-mm';
+  function savedRoomHeight(){try{const n=Number(localStorage.getItem(roomHeightKey));return Number.isInteger(n)&&n>=500&&n<=10000?n:2600;}catch{return 2600;}}
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone=value=>JSON.parse(JSON.stringify(value));
   const rackLimits={width:[10,2000],height:[10,1000],depth:[10,500],x:[-5000,5000],z:[-5000,5000],angle:[0,359]};
   const validNumber=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
   window.BinnenLocaties3D={mount(el,api){
     if(instances.has(el)){instances.get(el).activate();return;}
-    const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,busy:false,mode:'3d',query:'',overview:true,message:'Stellingen laden…'};
+    const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,busy:false,mode:'3d',query:'',overview:true,roomHeight:savedRoomHeight(),message:'Stellingen laden…'};
     let view=null,closed=false,viewError='';
     el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective">3D</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button></div><div class="l3-canvas"></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div><div class="l3-flat" hidden></div></section>`;
     const root=el.querySelector('.l3-root'),$=s=>root.querySelector(s);
@@ -50,7 +52,7 @@
     }
     function draw(){if(view&&state.data&&!validation())view.update(state.data,state,state.overview);}
     function renderRacks(){
-      $('.l3-racks').innerHTML=`<div class="l3-rail-title">Stellingen <span>${state.data?.racks.length||0}</span></div>${(state.data?.racks||[]).map(r=>`<button type="button" class="l3-rack-choice ${state.rackId===r.id?'is-selected':''}" data-l3="rack" data-id="${esc(r.id)}" aria-pressed="${state.rackId===r.id}" ${state.busy?'disabled':''}><span class="l3-rack-symbol">▥</span><span><strong>${esc(r.name)}</strong><small>${r.rows} rijen · ${state.data.products.filter(p=>p.rack===r.name).length} producten</small></span></button>`).join('')}${admin()?`<button type="button" data-l3="add" class="l3-add" ${!state.data||state.busy?'disabled':''}>＋ Nieuwe stelling</button>`:''}<p class="l3-rail-note">Klik op een vak in het model om producten toe te voegen.</p>`;
+      $('.l3-racks').innerHTML=`<div class="l3-rail-title">Stellingen <span>${state.data?.racks.length||0}</span></div>${(state.data?.racks||[]).map(r=>`<button type="button" class="l3-rack-choice ${state.rackId===r.id?'is-selected':''}" data-l3="rack" data-id="${esc(r.id)}" aria-pressed="${state.rackId===r.id}" ${state.busy?'disabled':''}><span class="l3-rack-symbol">▥</span><span><strong>${esc(r.name)}</strong><small>${r.rows} rijen · ${state.data.products.filter(p=>p.rack===r.name).length} producten</small></span></button>`).join('')}${admin()?`<button type="button" data-l3="add" class="l3-add" ${!state.data||state.busy?'disabled':''}>＋ Nieuwe stelling</button>`:''}<div class="l3-room-settings"><label>Hoogte muren<div class="l3-input-unit"><input data-room-height type="number" min="500" max="10000" step="1" value="${state.roomHeight}" ${!admin()||state.busy?'disabled':''}><span>mm</span></div></label><p>De muren aan de kijkzijde worden transparant.</p></div><p class="l3-rail-note">Klik op een vak in het model om producten toe te voegen.</p>`;
     }
     function warnings(){
       const r=rack();if(!r||!state.x||!state.y)return '';
@@ -106,6 +108,14 @@
       }
     });
     root.addEventListener('change',e=>{
+      if(e.target.matches('[data-room-height]')){
+        if(state.busy||!admin())return;
+        const n=Number(e.target.value);
+        if(!Number.isInteger(n)||n<500||n>10000){e.target.value=state.roomHeight;state.message='Kies een muurhoogte tussen 500 en 10000 mm.';status();return;}
+        try{localStorage.setItem(roomHeightKey,String(n));state.roomHeight=n;state.message='Muurhoogte opgeslagen op deze pc.';draw();view?.fit();}
+        catch{e.target.value=state.roomHeight;state.message='Muurhoogte kon niet worden opgeslagen.';}
+        status();return;
+      }
       if(state.busy||!rack())return;
       if(e.target.dataset.select){
         if(e.target.dataset.select==='y'){state.y=Number(e.target.value)||null;state.x=null;}else state.x=Number(e.target.value)||null;

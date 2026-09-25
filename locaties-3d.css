@@ -14,3 +14,5 @@
 @media(prefers-reduced-motion:reduce){.l3-root *{scroll-behavior:auto!important}}
 
 .l3-storage{font-size:11px;color:#526f96;background:#e9f0fb;border-left:3px solid #7e9dcb;padding:9px 12px;margin:0 0 12px;line-height:1.5}
+
+.l3-room-settings{border-top:1px solid var(--l3-line);margin:20px 5px 0;padding-top:16px}.l3-room-settings p{font-size:10px;line-height:1.6;color:var(--l3-muted);margin-top:9px}

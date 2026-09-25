@@ -1,6 +1,6 @@
 {
   "name": "binnenapp",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "BinnenApp desktop app",
   "main": "main.js",
   "scripts": {

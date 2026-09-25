@@ -16,22 +16,38 @@ export function createLocationView(host, onSelect) {
   const room=new T.Group();scene.add(room);
   const roomWidth=6.630,roomDepth=4.820,halfW=roomWidth/2,halfD=roomDepth/2;
   box(room,roomWidth,.06,roomDepth,0,-.06,0,0xdce5ef);
+  const walls=new T.Group();room.add(walls);
+  const wallPanels=[];
+  function wall(width,x,z,angle,nx,nz){
+    const panel=new T.Mesh(new T.PlaneGeometry(width,1),new T.MeshStandardMaterial({color:0xc9d6e6,roughness:1,side:T.DoubleSide,transparent:true}));
+    panel.position.set(x,.5,z);panel.rotation.y=angle;
+    const edge=new T.LineSegments(new T.EdgesGeometry(panel.geometry),new T.LineBasicMaterial({color:0x738aa7,transparent:true}));panel.add(edge);
+    panel.userData.wall={nx,nz,edge};walls.add(panel);wallPanels.push(panel);
+  }
+  wall(roomWidth,0,-halfD,0,0,-1);wall(roomWidth,0,halfD,Math.PI,0,1);
+  wall(roomDepth,-halfW,0,Math.PI/2,-1,0);wall(roomDepth,halfW,0,-Math.PI/2,1,0);
+  walls.scale.y=2.6;
   const floorLines=[];
   for(let x=Math.ceil(-halfW/.5)*.5;x<halfW;x+=.5)floorLines.push(x,-.025,-halfD,x,-.025,halfD);
   for(let z=Math.ceil(-halfD/.5)*.5;z<halfD;z+=.5)floorLines.push(-halfW,-.025,z,halfW,-.025,z);
   function lines(points,color){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(points,3));room.add(new T.LineSegments(geo,new T.LineBasicMaterial({color})));}
   lines(floorLines,0xb3c2d4);
   lines([-halfW,0,-halfD,halfW,0,-halfD,halfW,0,-halfD,halfW,0,halfD,halfW,0,halfD,-halfW,0,halfD,-halfW,0,halfD,-halfW,0,-halfD],0x315887);
-  // Maatlijnen rond de vloer; er is nog geen wandhoogte opgegeven.
+  // Maatlijnen rond de vloer; wandhoogte wordt apart ingesteld.
   const dimZ=halfD+.32,dimX=-halfW-.32;
   lines([-halfW,0,dimZ,halfW,0,dimZ,dimX,0,-halfD,dimX,0,halfD,
     -halfW,0,dimZ-.1,-halfW,0,dimZ+.1,halfW,0,dimZ-.1,halfW,0,dimZ+.1,
     dimX-.1,0,-halfD,dimX+.1,0,-halfD,dimX-.1,0,halfD,dimX+.1,0,halfD],0x617b9e);
   const widthLabel=text(room,'6630 mm',0,.01,dimZ+.23,1.5,.3);
   const depthLabel=text(room,'4820 mm',dimX-.23,.01,0,1.5,.3);
+  for(const label of [widthLabel,depthLabel]){label.material.depthTest=false;label.material.depthWrite=false;label.renderOrder=10;}
   let targets=[],snapshot,selected,overview=false,down=null,disposed=false;
   const ray=new T.Raycaster();
-  function render(){if(!disposed&&host.clientWidth&&host.clientHeight){widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
+  function render(){if(!disposed&&host.clientWidth&&host.clientHeight){for(const panel of wallPanels){
+    const {nx,nz,edge}=panel.userData.wall;
+    const near=(camera.position.x-panel.position.x)*nx+(camera.position.z-panel.position.z)*nz>0.01;
+    panel.material.opacity=near ? 0.10 : 1;panel.material.depthWrite=!near;edge.material.opacity=near ? 0.2 : 0.7;
+  }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
   function clear(){content.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});content.clear();targets=[];}
@@ -45,7 +61,7 @@ export function createLocationView(host, onSelect) {
     const m=new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide}));m.position.set(x,y,z);parent.add(m);return m;
   }
   function update(data,selection,all=false){
-    snapshot=data;selected=selection;overview=all;clear();
+    snapshot=data;selected=selection;overview=all;walls.scale.y=(selection.roomHeight||2600)/1000;clear();
     for(const r of data.racks){
       if(!all&&r.id!==selection.rackId)continue;
       const g=data.geometry.racks[r.id],w=g.width/100,h=g.height/100,d=g.depth/100;
