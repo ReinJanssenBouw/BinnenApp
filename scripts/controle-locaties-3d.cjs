@@ -36,11 +36,13 @@ app.whenReady().then(async()=>{
  click('[data-l3="rack"][data-id="'+rackId+'"]');set('[data-select="y"]','2','change');set('[data-select="x"]','1','change');click('[data-l3="product"][data-id="1"]');
  await new Promise(r=>setTimeout(r,1000));
  const canvas=q('.l3-canvas canvas'),gl=canvas?.getContext('webgl2');const webgl=!!gl&&canvas.width>100;const overflow=document.documentElement.scrollWidth>innerWidth;
+ const roomLabel=q('.l3-scale').textContent.includes('6630 × 4820 mm');
+ click('[data-l3="rack-settings"]');set('[data-dim="x"]','400','input');set('[data-dim="x"]','400','change');const outsideWarned=!!q('.l3-room-warning');set('[data-dim="x"]','0','input');set('[data-dim="x"]','0','change');const insideCleared=!q('.l3-room-warning');set('[data-dim="angle"]','90','input');set('[data-dim="angle"]','90','change');const rotationWarned=!!q('.l3-room-warning');set('[data-dim="angle"]','0','input');set('[data-dim="angle"]','0','change');click('[data-l3="save"]');await wait();
  window.testSetAdmin=()=>{admin=false;BinnenLocaties3D.mount(q('#test'),api)};
- return {invalidBlocked,assigned,warned,persisted,moved,removed,conflict,flat,webgl,overflow,saved,saves,assigns,stock:db.products.map(p=>[p.stock,p.min_stock]),status:q('.l3-status').textContent};
+ return {rotationWarned,roomLabel,outsideWarned,insideCleared,invalidBlocked,assigned,warned,persisted,moved,removed,conflict,flat,webgl,overflow,saved,saves,assigns,stock:db.products.map(p=>[p.stock,p.min_stock]),status:q('.l3-status').textContent};
  })()`);
  console.log(JSON.stringify(result));
- for(const k of ['invalidBlocked','assigned','warned','persisted','moved','removed','conflict','flat','webgl'])assert(result[k],k);
+ for(const k of ['rotationWarned','roomLabel','outsideWarned','insideCleared','invalidBlocked','assigned','warned','persisted','moved','removed','conflict','flat','webgl'])assert(result[k],k);
  assert(!result.overflow);assert.deepEqual(result.saved.racks[0].rowColumns,[4,3]);assert.equal(result.saved.geometry.racks[result.saved.racks[0].id].depth,80);assert.deepEqual(result.stock,[[8,6],[9,4]]);
  await new Promise(r=>setTimeout(r,800));fs.writeFileSync(path.resolve(__dirname,'../dist/locatie-3d-desktop.png'),(await w.webContents.capturePage()).toPNG());
  for(const width of [1024,1920]){w.setSize(width,950);await new Promise(r=>setTimeout(r,120));assert(await w.webContents.executeJavaScript("document.querySelector('#page-locatie').scrollWidth<=document.querySelector('#page-locatie').clientWidth"),'Desktop overflow '+width);}

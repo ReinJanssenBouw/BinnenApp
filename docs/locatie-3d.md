@@ -1,6 +1,8 @@
-# Locatie in 3D (Windows 1.0.11)
+# Locatie in 3D (Windows 1.0.12)
 
-Open **Locatie**. Maak links een stelling en vul rechts breedte, hoogte en diepte in centimeters in. Onder **Rijen en productkolommen** kun je per rij het aantal vakken kiezen. Via **Positie in het magazijn** plaats en draai je stellingen ten opzichte van elkaar; **Alle stellingen** toont het geheel.
+De ruimte heeft een vaste vloermaat van **6630 × 4820 mm**. Het model opent met de hele ruimte; met **Stelling bekijken** kun je een stelling van dichtbij bewerken. Stellingposities worden in centimeters gemeten vanaf het midden van de ruimte. Een waarschuwing verschijnt als een stelling, inclusief de ingestelde draaihoek, over de vloergrens steekt. Er is nog geen wandhoogte ingesteld.
+
+Open **Locatie**. Maak links een stelling en vul rechts breedte, hoogte en diepte in centimeters in. Onder **Rijen en productkolommen** kun je per rij het aantal vakken kiezen. Via **Positie in het magazijn** plaats en draai je stellingen ten opzichte van elkaar; **Ruimte bekijken** toont het geheel.
 
 Sla het model op en klik op een vak om een bestaand product toe te voegen. Klik daarna op het product om de breedte, hoogte en diepte van het product of de verpakking in te stellen. Elk artikel wordt als één blok getoond, onafhankelijk van de voorraad. Een waarschuwing geeft aan wanneer de gekozen maten niet passen. De startmaten zijn voorbeelden, geen opgemeten afmetingen.
 
