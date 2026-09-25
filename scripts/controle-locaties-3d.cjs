@@ -51,9 +51,29 @@ app.whenReady().then(async()=>{
  console.log(JSON.stringify(result));
  for(const k of ['planVisible','planSelection','planUpdated','switched3D','zoomed','resetZoom','planSaved','defaultHeight','wallHeightPersisted','wallHeightValidated','rotationWarned','roomLabel','outsideWarned','insideCleared','invalidBlocked','assigned','warned','persisted','moved','removed','conflict','flat','webgl'])assert(result[k],k);
  assert(!result.overflow);assert.deepEqual(result.saved.racks[0].rowColumns,[4,3]);assert.equal(result.saved.geometry.racks[result.saved.racks[0].id].depth,80);assert.deepEqual(result.stock,[[8,6],[9,4]]);
+ const pause=()=>new Promise(r=>setTimeout(r,80));
+ const pose=()=>w.webContents.executeJavaScript(`({x:Number(document.querySelector('[data-dim="x"]').value),z:Number(document.querySelector('[data-dim="z"]').value),dirty:!document.querySelector('[data-l3="save"]').disabled})`);
+ async function mouseDrag(dx,dy,cancel=false){
+  const point=await w.webContents.executeJavaScript(`(()=>{const el=document.querySelector('.l3-plan-rack.is-selected'),b=el.getBoundingClientRect(),m=el.ownerSVGElement.getScreenCTM();return {x:Math.round(b.x+b.width/2),y:Math.round(b.y+b.height/2),scale:m.a};})()`);
+  w.webContents.focus();
+  w.webContents.sendInputEvent({type:'mouseMove',x:point.x,y:point.y});await pause();
+  w.webContents.sendInputEvent({type:'mouseDown',x:point.x,y:point.y,button:'left',clickCount:1});await pause();
+  w.webContents.sendInputEvent({type:'mouseMove',x:point.x+dx,y:point.y+dy,button:'left',modifiers:['leftButtonDown']});await pause();
+  if(cancel){w.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});await pause();w.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});}
+  w.webContents.sendInputEvent({type:'mouseUp',x:point.x+dx,y:point.y+dy,button:'left',clickCount:1});await pause();return point.scale;
+ }
+ const original=await pose();const scale=await mouseDrag(-60,-30);const dragged=await pose();
+ assert(Math.abs(dragged.x-original.x+60/scale)<.2,'Drag X at rendered SVG scale');assert(Math.abs(dragged.z-original.z+30/scale)<.2,'Drag Z at rendered SVG scale');assert(dragged.dirty,'Drag must await save');
+ await mouseDrag(25,20,true);assert.deepEqual(await pose(),dragged,'Escape restores position and earlier unsaved state');
+ await w.webContents.executeJavaScript(`document.querySelector('[data-l3="plan-zoom"][data-factor="1.25"]').click()`);
+ const zoomStart=await pose();const zoomScale=await mouseDrag(-30,20);const zoomEnd=await pose();assert(Math.abs(zoomEnd.x-zoomStart.x+30/zoomScale)<.2,'Zoomed drag X');assert(Math.abs(zoomEnd.z-zoomStart.z-20/zoomScale)<.2,'Zoomed drag Z');
+ await w.webContents.executeJavaScript(`document.querySelector('[data-view="perspective"]').click()`);assert.deepEqual(await pose(),zoomEnd,'Same draft in 3D');
+ await w.webContents.executeJavaScript(`document.querySelector('[data-l3="plan"]').click();document.querySelector('[data-l3="save"]').click()`);await pause();await w.webContents.executeJavaScript(`document.querySelector('[data-l3="reload"]').click()`);await pause();const reloaded=await pose();assert.equal(reloaded.x,zoomEnd.x);assert.equal(reloaded.z,zoomEnd.z);assert(!reloaded.dirty);
+ await w.webContents.executeJavaScript(`document.querySelector('[data-l3="fit"]').click()`);
+ console.log('GESLAAGD: echte muisdrag, gedraaide stelling, zoom, Escape, 3D-consistentie en opgeslagen positie herladen.');
  await new Promise(r=>setTimeout(r,800));fs.writeFileSync(path.resolve(__dirname,'../dist/locatie-3d-desktop.png'),(await w.webContents.capturePage()).toPNG());
  for(const width of [1024,1920]){w.setSize(width,950);await new Promise(r=>setTimeout(r,120));assert(await w.webContents.executeJavaScript("document.querySelector('#page-locatie').scrollWidth<=document.querySelector('#page-locatie').clientWidth"),'Desktop overflow '+width);}
  await w.webContents.executeJavaScript('testSetAdmin()');await new Promise(r=>setTimeout(r,150));
- const member=await w.webContents.executeJavaScript(`document.querySelector('[data-l3="save"]').hidden&&!document.querySelector('[data-l3="add"]')&&[...document.querySelectorAll('[data-dim]')].every(e=>e.disabled)`);assert(member,'member read-only');
+ const member=await w.webContents.executeJavaScript(`document.querySelector('[data-l3="save"]').hidden&&!document.querySelector('[data-l3="add"]')&&[...document.querySelectorAll('[data-dim]')].every(e=>e.disabled)`);assert(member,'member read-only');const memberPose=await pose();await mouseDrag(25,20);assert.deepEqual(await pose(),memberPose,'Lid kan niet slepen');
  assert.deepEqual(errors,[]);console.log('GESLAAGD: WebGL, aanmaken, maten, rijindeling, validatie, plaatsen/verplaatsen, herladen, conflicten, vakkenlijst, rechten en voorraadbehoud.');w.destroy();app.quit();
 }).catch(e=>{console.error(e);app.exit(1)});

@@ -10,7 +10,7 @@
   window.BinnenLocaties3D={mount(el,api){
     if(instances.has(el)){instances.get(el).activate();return;}
     const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,busy:false,mode:'3d',query:'',overview:true,plan:false,planZoom:1,roomHeight:savedRoomHeight(),message:'Stellingen laden…'};
-    let view=null,closed=false,viewError='';
+    let view=null,closed=false,viewError='',planDrag=null,suppressPlanClickUntil=0;
     el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective" aria-pressed="true">3D</button><button type="button" data-l3="plan" aria-pressed="false">2D-plattegrond</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button><button type="button" data-l3="plan-zoom" data-factor="1.25" aria-label="Plattegrond inzoomen" hidden>＋</button><button type="button" data-l3="plan-zoom" data-factor="0.8" aria-label="Plattegrond uitzoomen" hidden>−</button></div><div class="l3-canvas"></div><div class="l3-plan" hidden></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div><div class="l3-flat" hidden></div></section>`;
     const root=el.querySelector('.l3-root'),$=s=>root.querySelector(s);
     const admin=()=>api.isAdmin();
@@ -69,18 +69,63 @@
       $('.l3-plan').innerHTML=`<svg viewBox="${(minX+maxX-width)/2} ${(minY+maxY-height)/2} ${width} ${height}" preserveAspectRatio="xMidYMid meet" aria-label="Plattegrond van de ruimte, 6630 bij 4820 millimeter"><defs><pattern id="${planGridId}" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e1e8f0" stroke-width="1"/></pattern></defs><rect x="-331.5" y="-241" width="663" height="482" fill="white"/><rect x="-331.5" y="-241" width="663" height="482" fill="url(#${planGridId})"/><rect class="l3-plan-walls" x="-336.5" y="-246" width="673" height="492"/><g class="l3-plan-dimensions"><path d="M -331.5 -265 V -290 M 331.5 -265 V -290 M -331.5 -278 H 331.5 M -353.5 -241 H -378.5 M -353.5 241 H -378.5 M -366.5 -241 V 241"/><text x="0" y="-290" text-anchor="middle">6630 mm</text><text transform="translate(-382 0) rotate(-90)" text-anchor="middle">4820 mm</text></g>${items}<g class="l3-plan-origin"><path d="M -6 0 H 6 M 0 -6 V 6"/><title>Midden van de ruimte: X 0, Z 0</title></g></svg>`;
     }
     function showView(){
+      root.classList.toggle('l3-can-drag',admin());
       $('.l3-header h1').textContent=state.plan?'Plattegrond van je magazijn':'Je magazijn in 3D';
       if($('.l3-room-settings'))$('.l3-room-settings').hidden=state.plan;
-      if($('.l3-rail-note'))$('.l3-rail-note').textContent=state.plan?'Klik op een stelling in de plattegrond om deze te bewerken.':'Klik op een vak in het model om producten toe te voegen.';
+      if($('.l3-rail-note'))$('.l3-rail-note').textContent=state.plan?(admin()?'Sleep een stelling naar de gewenste plek en klik op Model opslaan.':'Klik op een stelling om deze te bekijken.'):'Klik op een vak in het model om producten toe te voegen.';
       $('.l3-canvas').hidden=state.plan;$('.l3-plan').hidden=!state.plan;
       $('[data-l3="plan"]').setAttribute('aria-pressed',String(state.plan));
       $('[data-view="perspective"]').setAttribute('aria-pressed',String(!state.plan));
       for(const e of root.querySelectorAll('[data-view="front"],[data-view="top"],[data-l3="overview"]'))e.hidden=state.plan;
       for(const e of root.querySelectorAll('[data-l3="plan-zoom"]'))e.hidden=!state.plan;
-      $('.l3-stage-caption span').textContent=state.plan?'Klik op een stelling om deze te bewerken. Dikke blauwe lijn: voorkant.':'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
+      $('.l3-stage-caption span').textContent=state.plan?(admin()?'Sleep: verplaatsen · Esc: annuleren. Dikke blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
     }
     function draw(){showView();if(state.data&&!validation()){if(state.plan)planView();else view?.update(state.data,state,state.overview);}}
-    root.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
+    root.addEventListener('keydown',e=>{if(!planDrag&&(e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
+    const planHost=$('.l3-plan');
+    function dragMove(e){
+      const drag=planDrag;if(!drag||e.pointerId!==drag.pointerId)return;
+      if(!admin()||state.busy||!state.plan){endDrag(true);return;}
+      if(!drag.moved&&Math.hypot(e.clientX-drag.clientX,e.clientY-drag.clientY)<3)return;
+      drag.moved=true;
+      const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(drag.inverse);
+      const g=state.data.geometry.racks[drag.rackId];
+      g.x=Math.max(-5000,Math.min(5000,Math.round((drag.x+p.x-drag.start.x)*10)/10));
+      g.z=Math.max(-5000,Math.min(5000,Math.round((drag.z+p.y-drag.start.y)*10)/10));
+      drag.node.setAttribute('transform',`translate(${g.x} ${g.z}) rotate(${-g.angle})`);
+      drag.node.classList.toggle('is-outside',!!roomWarning(g));
+      for(const key of ['x','z']){const input=$(`[data-dim="${key}"][data-scope="rack"]`);if(input)input.value=g[key];}
+      state.dirty=true;state.message=`Positie: X ${g.x} cm · Z ${g.z} cm. Sla het model op om de verplaatsing te bewaren.`;status();
+    }
+    function endDrag(cancel=false){
+      const drag=planDrag;if(!drag)return;
+      planDrag=null;
+      if(planHost.hasPointerCapture(drag.pointerId))planHost.releasePointerCapture(drag.pointerId);
+      planHost.classList.remove('is-dragging');
+      if(cancel){Object.assign(state.data.geometry.racks[drag.rackId],{x:drag.x,z:drag.z});state.dirty=drag.dirty;state.message=drag.moved?'Verplaatsing geannuleerd.':drag.message;}
+      else if(drag.moved){state.message='Stelling verplaatst. Klik op Model opslaan om de positie te bewaren.';}
+      if(drag.moved)suppressPlanClickUntil=performance.now()+350;
+      render();
+      [...planHost.querySelectorAll('.l3-plan-rack')].find(n=>n.dataset.id===drag.rackId)?.focus({preventScroll:true});
+    }
+    planHost.addEventListener('pointerdown',e=>{
+      const node=e.target.closest('.l3-plan-rack');
+      if(!node||!state.plan||state.busy||!admin()||planDrag||e.button!==0||!e.isPrimary||validation())return;
+      const matrix=node.ownerSVGElement.getScreenCTM();if(!matrix)return;
+      const inverse=matrix.inverse(),g=state.data.geometry.racks[node.dataset.id];if(!g)return;
+      try{planHost.setPointerCapture(e.pointerId);}catch{return;}
+      e.preventDefault();
+      planDrag={node,rackId:node.dataset.id,pointerId:e.pointerId,inverse,start:new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse),clientX:e.clientX,clientY:e.clientY,x:g.x,z:g.z,dirty:state.dirty,message:state.message,moved:false};
+      state.rackId=node.dataset.id;state.x=null;state.y=null;state.productId=null;state.query='';
+      for(const item of planHost.querySelectorAll('.l3-plan-rack')){const selected=item===node;item.classList.toggle('is-selected',selected);item.setAttribute('aria-pressed',String(selected));}
+      node.focus({preventScroll:true});planHost.classList.add('is-dragging');renderRacks();inspector();status();showView();
+    });
+    planHost.addEventListener('pointermove',dragMove);
+    planHost.addEventListener('pointerup',e=>{if(planDrag?.pointerId===e.pointerId){dragMove(e);endDrag();}});
+    planHost.addEventListener('pointercancel',e=>{if(planDrag?.pointerId===e.pointerId)endDrag(true);});
+    planHost.addEventListener('lostpointercapture',e=>{if(planDrag?.pointerId===e.pointerId)endDrag(true);});
+    root.addEventListener('keydown',e=>{if(planDrag&&e.key==='Escape'){e.preventDefault();endDrag(true);}});
+    const cancelDrag=()=>endDrag(true);window.addEventListener('blur',cancelDrag);window.addEventListener('resize',cancelDrag);
     function renderRacks(){
       $('.l3-racks').innerHTML=`<div class="l3-rail-title">Stellingen <span>${state.data?.racks.length||0}</span></div>${(state.data?.racks||[]).map(r=>`<button type="button" class="l3-rack-choice ${state.rackId===r.id?'is-selected':''}" data-l3="rack" data-id="${esc(r.id)}" aria-pressed="${state.rackId===r.id}" ${state.busy?'disabled':''}><span class="l3-rack-symbol">▥</span><span><strong>${esc(r.name)}</strong><small>${r.rows} rijen · ${state.data.products.filter(p=>p.rack===r.name).length} producten</small></span></button>`).join('')}${admin()?`<button type="button" data-l3="add" class="l3-add" ${!state.data||state.busy?'disabled':''}>＋ Nieuwe stelling</button>`:''}<div class="l3-room-settings"><label>Hoogte muren<div class="l3-input-unit"><input data-room-height type="number" min="500" max="10000" step="1" value="${state.roomHeight}" ${!admin()||state.busy?'disabled':''}><span>mm</span></div></label><p>De muren aan de kijkzijde worden transparant.</p></div><p class="l3-rail-note">Klik op een vak in het model om producten toe te voegen.</p>`;
     }
@@ -161,6 +206,7 @@
     root.addEventListener('click',async e=>{
       const b=e.target.closest('[data-l3]');if(!b||b.disabled||state.busy)return;
       const action=b.dataset.l3;
+      if(planDrag||(action==='rack'&&b.matches('.l3-plan-rack')&&performance.now()<suppressPlanClickUntil))return;
       if(action==='view'){state.plan=false;inspector();draw();status();view?.resize();view?.fit(b.dataset.view);return;}
       if(action==='plan'){state.plan=true;inspector();draw();status();return;}
       if(action==='plan-zoom'){state.planZoom=Math.max(.5,Math.min(4,state.planZoom*Number(b.dataset.factor)));draw();return;}
@@ -211,6 +257,6 @@
     render();
     import('./locaties-3d-view.mjs').then(({createLocationView})=>{if(closed)return;view=createLocationView($('.l3-canvas'),select);draw();view.fit();}).catch(()=>{viewError='3D kan niet starten op deze pc. Gebruik de 2D-plattegrond of vakkenlijst; je gegevens blijven beschikbaar.';status();});
     void load();
-    window.addEventListener('pagehide',()=>{closed=true;view?.dispose();window.removeEventListener('beforeunload',beforeUnload);},{once:true});
+    window.addEventListener('pagehide',()=>{closed=true;view?.dispose();window.removeEventListener('beforeunload',beforeUnload);window.removeEventListener('blur',cancelDrag);window.removeEventListener('resize',cancelDrag);},{once:true});
   }};
 })();
