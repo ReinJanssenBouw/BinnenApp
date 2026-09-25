@@ -1035,3 +1035,13 @@ button:disabled{transform:none!important;box-shadow:none;cursor:default;}
 .voorraad-grenzen{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:13px}.voorraad-grenzen summary{cursor:pointer;color:#2453b8;font-weight:600}.voorraad-grenzen p{color:#64748b;margin:10px 0}.voorraad-grenzen-velden{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.voorraad-grenzen-velden label{min-width:0;font-weight:600}.voorraad-grenzen-velden input{display:block;box-sizing:border-box;width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:16px}
 
 .scherm.scherm-locatie{background:#fff;}
+
+/* Voorraad en minimum direct bewerken op telefoon en tablet. */
+.voorraad-veldlabel{display:block;margin:16px 0 7px;font-size:12px;font-weight:800;color:var(--inkt)}
+.voorraad-kaart .voorraad-bediening{grid-template-columns:44px minmax(0,1fr) 44px 78px;margin:0;padding:0;border:0;gap:6px}
+.voorraad-kaart .voorraad-opslaan{width:78px;font-size:12px;font-weight:800;border-radius:12px}
+.voorraad-kaart .voorraad-invoer{border:1px solid #cbd5e1;background:#fff}
+.voorraad-kaart .voorraad-hint{font-size:11px;line-height:1.4;text-align:left;color:var(--vaag);font-weight:500}
+.voorraad-minimum{margin-top:16px;padding-top:1px;border-top:1px solid #e2e8f0}
+.voorraad-minimum-bediening{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center}
+@media(max-width:359px){.voorraad-kaart .voorraad-bediening{grid-template-columns:36px minmax(0,1fr) 36px 68px}.voorraad-kaart .voorraad-knop{width:36px}.voorraad-kaart .voorraad-opslaan{width:68px}.voorraad-minimum-bediening{grid-template-columns:minmax(0,1fr) 68px}}

@@ -37,6 +37,7 @@ const staat = {
   categorie: "Alles",
   sortering: SORTEERWIJZEN.includes(bewaardeSortering) ? bewaardeSortering : "jb",
   voorraadBezig: new Set(),
+  voorraadConcepten: new Map(),
   bezig: false,
   laadfout: "",   // gevuld = laden mislukt; lijsten zijn dan onbetrouwbaar
 };
@@ -1142,6 +1143,9 @@ function lijstVoorraad() {
   return `<div class="telling">${lijst.length} ${lijst.length === 1 ? "artikel" : "artikelen"}</div>` + (lijst.length ? lijst.map((p) => {
     const voorraad = Number(p.stock || 0);
     const min = Number(p.min_stock || 0);
+    const concept = staat.voorraadConcepten.get(Number(p.id)) || {};
+    const voorraadInvoer = concept.stock ?? voorraad;
+    const minimumInvoer = concept.min_stock ?? min;
     const bezig = staat.voorraadBezig.has(Number(p.id));
     const chip = min > 0 && voorraad <= 0 ? `<span class="artikel-chip leeg-voorraad">Leeg</span>`
       : (min > 0 && voorraad < min) ? `<span class="artikel-chip laag">Laag</span>`
@@ -1160,51 +1164,66 @@ function lijstVoorraad() {
         </div>
       </div>
     </div>
+    <div class="voorraad-veldlabel">Voorraad</div>
     <div class="voorraad-bediening">
       <button type="button" class="voorraad-knop" data-voorraad-richting="-1" data-voorraad-id="${p.id}"
-        aria-label="Voorraad van ${esc(p.description)} met één verlagen" ${bezig || voorraad <= 0 ? "disabled" : ""}>&minus;</button>
+        aria-label="Voorraad van ${esc(p.description)} met één verlagen" ${bezig || Number(voorraadInvoer) <= 0 ? "disabled" : ""}>&minus;</button>
       <label class="voorraad-invoer">
         <span class="visueel-verborgen">Voorraad van ${esc(p.description)}</span>
-        <input type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${voorraad}"
+        <input type="number" inputmode="numeric" min="0" max="1000000" step="1" required value="${esc(voorraadInvoer)}"
           data-voorraad-veld="${p.id}" aria-label="Huidige voorraad van ${esc(p.description)}" ${bezig ? "disabled" : ""}>
         <span>${esc(eenheid)}</span>
       </label>
       <button type="button" class="voorraad-knop" data-voorraad-richting="1" data-voorraad-id="${p.id}"
         aria-label="Voorraad van ${esc(p.description)} met één verhogen" ${bezig ? "disabled" : ""}>+</button>
       <button type="button" class="voorraad-opslaan" data-voorraad-opslaan="${p.id}"
-        aria-label="Nieuwe voorraad van ${esc(p.description)} opslaan" disabled>
+        aria-label="Nieuwe voorraad van ${esc(p.description)} opslaan" ${bezig || !geldigVoorraadAantal(voorraadInvoer) || Number(voorraadInvoer) === voorraad ? "disabled" : ""}>
         ${bezig
           ? `<span class="voorraad-lader" aria-hidden="true"></span>`
-          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`}
+          : "Opslaan"}
       </button>
     </div>
-    <div class="voorraad-hint">Pas met &minus; of + aan, of vul het exacte aantal in.</div>
-    ${staat.beheerder ? `<details class="voorraad-grenzen"><summary>Minimumvoorraad aanpassen</summary>
-      <p>Onder het minimum bestellen we bij tot de minimumvoorraad.</p>
-      <div class="voorraad-grenzen-velden">
-        <label>Minimumvoorraad<input id="minimum-${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" value="${min}"></label>
-      </div><button type="button" class="knop klein" data-grenzen-opslaan="${p.id}">Opslaan</button>
-    </details>` : ""}
+    <div class="voorraad-hint">+ en − slaan direct op. Getal ingevuld? Tik op Opslaan.</div>
+    ${staat.beheerder ? `<div class="voorraad-minimum">
+      <label class="voorraad-veldlabel" for="minimum-${p.id}">Minimumvoorraad</label>
+      <div class="voorraad-minimum-bediening">
+        <div class="voorraad-invoer"><input id="minimum-${p.id}" data-minimum-veld="${p.id}" type="number" inputmode="numeric" min="0" max="1000000" step="1" required value="${esc(minimumInvoer)}" aria-label="Minimumvoorraad van ${esc(p.description)}" ${bezig ? "disabled" : ""}><span>${esc(eenheid)}</span></div>
+        <button type="button" class="voorraad-opslaan" data-grenzen-opslaan="${p.id}" aria-label="Minimumvoorraad van ${esc(p.description)} opslaan" ${bezig || !geldigVoorraadAantal(minimumInvoer) || Number(minimumInvoer) === min ? "disabled" : ""}>Opslaan</button>
+      </div><p class="voorraad-hint">Onder dit aantal verschijnt het product bij aanvullen.</p>
+    </div>` : ""}
     </div>`;
   }).join("") : (staat.laadfout
     ? `<div class="lege-staat"><strong>Voorraad kon niet worden geladen</strong>${esc(staat.laadfout)}</div>`
     : `<div class="lege-staat"><strong>Geen artikelen gevonden</strong>Probeer een andere zoekterm</div>`));
 }
 
+function geldigVoorraadAantal(waarde) {
+  return String(waarde ?? "").trim() !== "" && Number.isInteger(Number(waarde))
+    && Number(waarde) >= 0 && Number(waarde) <= 1000000;
+}
+
+function wisVoorraadConcept(id, veld) {
+  const concept = staat.voorraadConcepten.get(Number(id));
+  if (!concept) return;
+  delete concept[veld];
+  if (!Object.keys(concept).length) staat.voorraadConcepten.delete(Number(id));
+}
+
 function hertekenVoorraadLijst() {
+  if (staat.tab !== "voorraad") return;
   const lijst = $("lijst");
   if (lijst) lijst.innerHTML = lijstVoorraad();
 }
 
 async function voorraadGrenzenOpslaan(id, knop) {
-  const p = product(Number(id));
-  if (!staat.beheerder || !p.id || knop.disabled) return;
-  const minimumTekst = $("minimum-" + p.id).value;
+  const productId = Number(id), p = product(productId);
+  if (!staat.beheerder || !p.id || knop.disabled || staat.voorraadBezig.has(productId)) return;
+  const minimumTekst = $("minimum-" + p.id)?.value;
+  if (!geldigVoorraadAantal(minimumTekst)) return melden("Vul een heel aantal van 0 tot 1.000.000 in.");
   const minimum = Number(minimumTekst);
-  if (!minimumTekst || !Number.isInteger(minimum) || minimum < 0 || minimum > 1000000) {
-    return melden("Vul een heel aantal van 0 tot 1.000.000 in.");
-  }
-  knop.disabled = true;
+  if (minimum === Number(p.min_stock || 0)) return;
+  staat.voorraadBezig.add(productId);
+  hertekenVoorraadLijst();
   try {
     const {data, error} = await db.rpc("binnenapp_set_min_stock", {
       p_product_id: p.id, p_min_stock: minimum,
@@ -1212,11 +1231,16 @@ async function voorraadGrenzenOpslaan(id, knop) {
     });
     if (error) throw error;
     Object.assign(p, data);
-    tekenScherm();
+    wisVoorraadConcept(productId, "min_stock");
     melden("Minimumvoorraad opgeslagen.");
   } catch (error) {
+    const {data: actueel} = await db.from("products").select("*").eq("id", productId).maybeSingle();
+    if (actueel) Object.assign(p, actueel);
     melden(foutTekst(error));
-  } finally { knop.disabled = false; }
+  } finally {
+    staat.voorraadBezig.delete(productId);
+    if (staat.tab === "voorraad") tekenScherm(true);
+  }
 }
 
 function leesVoorraadVeld(id) {
@@ -1230,8 +1254,7 @@ async function voorraadOpslaan(id, waarde) {
 
   const oudeVoorraad = Number(p.stock || 0);
   const nieuweVoorraad = Number(waarde);
-  if (!Number.isFinite(nieuweVoorraad) || !Number.isInteger(nieuweVoorraad)
-      || nieuweVoorraad < 0 || nieuweVoorraad > 1000000) {
+  if (!geldigVoorraadAantal(waarde)) {
     melden("Vul een heel aantal tussen 0 en 1.000.000 in.");
     hertekenVoorraadLijst();
     return;
@@ -1252,7 +1275,9 @@ async function voorraadOpslaan(id, waarde) {
       p_expected_stock: oudeVoorraad,
     });
     if (error) throw error;
+    Object.assign(p, data);
     p.stock = Number(data?.stock ?? nieuweVoorraad);
+    wisVoorraadConcept(productId, "stock");
     melden(`Voorraad aangepast naar ${p.stock} ${p.unit || "st"}.`);
   } catch (error) {
     const { data: actueel } = await db.from("products").select("*").eq("id", productId).maybeSingle();
@@ -1261,7 +1286,7 @@ async function voorraadOpslaan(id, waarde) {
     melden(foutTekst(error));
   } finally {
     staat.voorraadBezig.delete(productId);
-    hertekenVoorraadLijst();
+    if (staat.tab === "voorraad") tekenScherm(true);
   }
 }
 
@@ -2393,14 +2418,19 @@ document.addEventListener("click", (e) => {
 // Alleen de lijst hertekenen: zou het hele scherm opnieuw opgebouwd worden,
 // dan verdwijnt het invoerveld en klapt het toetsenbord op een telefoon dicht.
 document.addEventListener("input", (e) => {
-  if (e.target.dataset.voorraadVeld !== undefined) {
-    const id = Number(e.target.dataset.voorraadVeld);
-    const huidig = Number(product(id).stock || 0);
-    const nieuw = Number(e.target.value);
-    const geldig = Number.isFinite(nieuw) && Number.isInteger(nieuw) && nieuw >= 0 && nieuw <= 1000000;
+  if (e.target.dataset.voorraadVeld !== undefined || e.target.dataset.minimumVeld !== undefined) {
+    const minimum = e.target.dataset.minimumVeld !== undefined;
+    const id = Number(minimum ? e.target.dataset.minimumVeld : e.target.dataset.voorraadVeld);
+    const veld = minimum ? "min_stock" : "stock";
+    const concept = staat.voorraadConcepten.get(id) || {};
+    concept[veld] = e.target.value;
+    staat.voorraadConcepten.set(id, concept);
+    const huidig = Number(product(id)[veld] || 0);
+    const geldig = geldigVoorraadAantal(e.target.value);
     e.target.classList.toggle("ongeldig", !geldig);
-    const opslaan = document.querySelector(`[data-voorraad-opslaan="${id}"]`);
-    if (opslaan) opslaan.disabled = !geldig || nieuw === huidig || staat.voorraadBezig.has(id);
+    e.target.setAttribute("aria-invalid", String(!geldig));
+    const opslaan = document.querySelector(minimum ? `[data-grenzen-opslaan="${id}"]` : `[data-voorraad-opslaan="${id}"]`);
+    if (opslaan) opslaan.disabled = !geldig || Number(e.target.value) === huidig || staat.voorraadBezig.has(id);
     return;
   }
   if (e.target.id === "categorieZoek") {
@@ -2419,9 +2449,15 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" || e.target.dataset.voorraadVeld === undefined) return;
-  e.preventDefault();
-  voorraadOpslaan(e.target.dataset.voorraadVeld, e.target.value);
+  if (e.key !== "Enter") return;
+  if (e.target.dataset.minimumVeld !== undefined) {
+    e.preventDefault();
+    const knop = document.querySelector(`[data-grenzen-opslaan="${e.target.dataset.minimumVeld}"]`);
+    if (knop) voorraadGrenzenOpslaan(e.target.dataset.minimumVeld, knop);
+  } else if (e.target.dataset.voorraadVeld !== undefined) {
+    e.preventDefault();
+    voorraadOpslaan(e.target.dataset.voorraadVeld, e.target.value);
+  }
 });
 
 // ── Inloggen ────────────────────────────────────────────────────────────
