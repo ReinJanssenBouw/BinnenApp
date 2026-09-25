@@ -58,6 +58,7 @@ final class WebController: UIViewController, WKNavigationDelegate, WKUIDelegate,
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = action.request.url else { decisionHandler(.cancel); return }
         if url.scheme == "https", url.host == Self.host { decisionHandler(.allow); return }
+        if action.targetFrame?.isMainFrame == false, url.absoluteString.hasPrefix("blob:https://\(Self.host)/") { decisionHandler(.allow); return }
         if action.navigationType == .linkActivated, ["https", "mailto", "tel"].contains(url.scheme ?? "") { UIApplication.shared.open(url) }
         decisionHandler(.cancel)
     }

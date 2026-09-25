@@ -72,7 +72,11 @@ final class RackARController: UIViewController, ARSCNViewDelegate, ARSessionDele
     }
     deinit { NotificationCenter.default.removeObserver(self); timeout?.invalidate() }
     override func viewWillDisappear(_ animated: Bool) { super.viewWillDisappear(animated); ar.session.pause() }
-    override func viewDidAppear(_ animated: Bool) { super.viewDidAppear(animated); if started, let config = configuration { ar.session.run(config) } }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if !started, AVCaptureDevice.authorizationStatus(for: .video) == .authorized { start() }
+        else if started, let config = configuration { ar.session.run(config) }
+    }
     private func start() {
         guard !started else { return }; started = true
         let config = ARWorldTrackingConfiguration(); config.planeDetection = [.horizontal,.vertical]
@@ -144,9 +148,11 @@ final class RackARController: UIViewController, ARSCNViewDelegate, ARSessionDele
         }
     }
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for added: ARAnchor) {
-        guard added.name == "binnenapp-\(payload.rack.id)" || (loadedName != nil && added.name == loadedName) else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, !self.placing else { return }
+            guard added.name == "binnenapp-\(self.payload.rack.id)" else { return }
+            if let expected = self.anchor, expected.identifier != added.identifier { return }
+            guard self.anchor != nil || self.loadedName == added.name else { return }
             self.anchor = added; self.rackNode = node; self.drawRack(node); node.isHidden = !self.normalTracking
             self.updateButtons()
         }

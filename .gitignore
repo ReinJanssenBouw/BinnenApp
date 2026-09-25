@@ -14,3 +14,4 @@ ios/*.xcodeproj/
 ios/*.xcworkspace/
 *.p12
 *.mobileprovision
+ios/BinnenApp/Assets.xcassets/

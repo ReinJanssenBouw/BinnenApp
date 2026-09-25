@@ -16,7 +16,7 @@ Dit is een eerste implementatie. Belichting, herhaalde stellingpatronen en veran
 
 ## Bouwen
 
-Op een Mac met Xcode en XcodeGen: `cd ios && xcodegen generate`, open `BinnenApp.xcodeproj`, kies de eigen Signing Team en een iPhone. Minimum iOS 17. De bundle identifier is `nl.janssenbouw.binnenapp` en moet in het eigen Apple Developer-team beschikbaar zijn.
+Op een Mac met Xcode en XcodeGen: `cd ios && sh prepare.sh && xcodegen generate`, open `BinnenApp.xcodeproj`, kies de eigen Signing Team en een iPhone. Minimum iOS 17. De bundle identifier is `nl.janssenbouw.binnenapp` en moet in het eigen Apple Developer-team beschikbaar zijn.
 
 GitHub Actions **BinnenApp iPhone build** bouwt zonder certificaten, draait geometrie-/payloadtests en maakt een unsigned `.xcarchive`. Dat is een controle-artifact, geen installeerbare IPA. ARKit-tracking vereist een echte iPhone en kan niet in de simulator worden getest.
 
