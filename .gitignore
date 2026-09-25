@@ -8,3 +8,9 @@ supabase/.temp/
 !.env.example
 import-20260924/*.html
 import-20260924/*.jpg
+
+ios/build/
+ios/*.xcodeproj/
+ios/*.xcworkspace/
+*.p12
+*.mobileprovision

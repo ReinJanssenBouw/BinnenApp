@@ -698,6 +698,7 @@ function tekenScherm(bewaarScroll = false) {
     window.BinnenLocaties.mount(el, {
       isAdmin: () => staat.beheerder, isActive: () => staat.tab === 'locatie',
       openAR: openLocatieAR,
+      arLabel: window.webkit?.messageHandlers?.binnenAR ? 'AR-camera' : 'AR-proef',
       assign: async payload => { const {data,error}=await db.rpc('binnenapp_assign_product_location',payload); if(error)throw error;return data; },
       load: async () => { const {data,error}=await db.rpc('binnenapp_get_location_layout'); if(error)throw error;return data; },
       save: async (racks,revision) => { const {data,error}=await db.rpc('binnenapp_save_location_layout',{p_racks:racks,p_revision:revision}); if(error)throw error;return data; }
@@ -2566,6 +2567,12 @@ start().catch((e) => {
 
 // Eigen iframe houdt camera en AR-renderer los van de overige app.
 function openLocatieAR(data) {
+  const nativeAR = window.webkit?.messageHandlers?.binnenAR;
+  if(nativeAR) {
+    if(!staat.gebruiker?.id){melden('Meld je opnieuw aan om AR te openen.');return;}
+    nativeAR.postMessage({userID:staat.gebruiker.id,...data}).catch(error=>melden(error.message||'AR openen mislukt.'));
+    return;
+  }
   if(document.getElementById('locatieAR'))return;
   const frame=document.createElement('iframe');frame.id='locatieAR';frame.title='BinnenApp AR-proef';frame.allow='camera';
   frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:10000;background:#f2f6fb';
