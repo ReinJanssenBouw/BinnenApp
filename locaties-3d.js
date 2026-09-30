@@ -11,7 +11,7 @@
     if(instances.has(el)){instances.get(el).activate();return;}
     const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,busy:false,mode:'3d',query:'',overview:true,plan:false,planZoom:1,roomHeight:savedRoomHeight(),message:'Stellingen laden…'};
     let view=null,closed=false,viewError='',planDrag=null,suppressPlanClickUntil=0;
-    el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective" aria-pressed="true">3D</button><button type="button" data-l3="plan" aria-pressed="false">2D-plattegrond</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button><button type="button" data-l3="plan-zoom" data-factor="1.25" aria-label="Plattegrond inzoomen" hidden>＋</button><button type="button" data-l3="plan-zoom" data-factor="0.8" aria-label="Plattegrond uitzoomen" hidden>−</button></div><div class="l3-canvas"></div><div class="l3-plan" hidden></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div><div class="l3-flat" hidden></div></section>`;
+    el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective" aria-pressed="true">3D</button><button type="button" data-l3="plan" aria-pressed="false">2D-plattegrond</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button><button type="button" data-l3="plan-zoom" data-factor="1.25" aria-label="Plattegrond inzoomen" hidden>＋</button><button type="button" data-l3="plan-zoom" data-factor="0.8" aria-label="Plattegrond uitzoomen" hidden>−</button></div><div class="l3-canvas"></div><div class="l3-plan" hidden></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div></section>`;
     const root=el.querySelector('.l3-root'),$=s=>root.querySelector(s);
     const admin=()=>api.isAdmin();
     const rack=()=>state.data?.racks.find(r=>r.id===state.rackId);
@@ -46,7 +46,7 @@
       $('.l3-status').classList.toggle('is-error',!!error);
       $('[data-l3="save"]').disabled=!admin()||state.busy||!state.dirty||!!error;
       $('[data-l3="save"]').textContent=state.busy?'Even wachten…':'Model opslaan';
-      $('[data-l3="save"]').hidden=!admin()||state.mode!=='3d';
+      $('[data-l3="save"]').hidden=!admin();
       $('[data-l3="reload"]').disabled=state.busy;
       $('[data-l3="mode"]').disabled=state.busy;
     }
@@ -70,17 +70,20 @@
     }
     function showView(){
       root.classList.toggle('l3-can-drag',admin());
-      $('.l3-header h1').textContent=state.plan?'Plattegrond van je magazijn':'Je magazijn in 3D';
-      if($('.l3-room-settings'))$('.l3-room-settings').hidden=state.plan;
+      $('.l3-header h1').textContent=state.mode==='flat'?'Vakkenlijst · vooraanzicht':state.plan?'Plattegrond van je magazijn':'Je magazijn in 3D';
+      if($('.l3-room-settings'))$('.l3-room-settings').hidden=state.plan||state.mode==='flat';
       if($('.l3-rail-note'))$('.l3-rail-note').textContent=state.plan?(admin()?'Sleep een stelling naar de gewenste plek. Dicht bij een muur klikt hij vast. Klik daarna op Model opslaan.':'Klik op een stelling om deze te bekijken.'):'Klik op een vak in het model om producten toe te voegen.';
       $('.l3-canvas').hidden=state.plan;$('.l3-plan').hidden=!state.plan;
       $('[data-l3="plan"]').setAttribute('aria-pressed',String(state.plan));
-      $('[data-view="perspective"]').setAttribute('aria-pressed',String(!state.plan));
-      for(const e of root.querySelectorAll('[data-view="front"],[data-view="top"],[data-l3="overview"]'))e.hidden=state.plan;
+      $('[data-view="perspective"]').setAttribute('aria-pressed',String(!state.plan&&state.mode==='3d'));
+      for(const e of root.querySelectorAll('[data-view="front"],[data-view="top"],[data-l3="overview"]'))e.hidden=state.plan||state.mode==='flat';
       for(const e of root.querySelectorAll('[data-l3="plan-zoom"]'))e.hidden=!state.plan;
-      $('.l3-stage-caption span').textContent=state.plan?(admin()?'Sleep: verplaatsen · Magneet bij muren · Esc: annuleren. Blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
+      $('[data-l3="mode"]').textContent=state.mode==='flat'?'Terug naar 3D':'Vakkenlijst';
+      $('[data-l3="mode"]').setAttribute('aria-pressed',String(state.mode==='flat'));
+      $('.l3-scale').textContent=state.mode==='flat'?'Recht vooraanzicht · zonder perspectief':'Ruimte 6630 × 4820 mm · Raster 500 mm';
+      $('.l3-stage-caption span').textContent=state.mode==='flat'?'Klik: vak of product · Scroll: zoomen · Sleep: verschuiven':state.plan?(admin()?'Sleep: verplaatsen · Magneet bij muren · Esc: annuleren. Blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
     }
-    function draw(){showView();if(state.data&&!validation()){if(state.plan)planView();else view?.update(state.data,state,state.overview);}}
+    function draw(){showView();if(state.data&&!validation()){if(state.plan)planView();else view?.update(state.data,{...state,frontView:state.mode==='flat'},state.overview);}}
     root.addEventListener('keydown',e=>{if(!planDrag&&(e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
     const planHost=$('.l3-plan');
     function snapToWalls(g,drag){
@@ -197,7 +200,7 @@
     }
     function select(hit){
       if(state.busy)return;const different=state.rackId!==hit.rackId;
-      state.rackId=hit.rackId;state.x=hit.x||null;state.y=hit.y||null;state.productId=hit.productId||null;state.query='';render();if(different&&!state.overview)view?.fit();
+      state.rackId=hit.rackId;state.x=hit.x||null;state.y=hit.y||null;state.productId=hit.productId||null;state.query='';render();if(different&&(!state.overview||state.mode==='flat'))view?.fit();
     }
     function dirty(){state.dirty=true;state.message='';status();draw();}
     root.addEventListener('input',e=>{
@@ -233,21 +236,17 @@
       const b=e.target.closest('[data-l3]');if(!b||b.disabled||state.busy)return;
       const action=b.dataset.l3;
       if(planDrag||(action==='rack'&&b.matches('.l3-plan-rack')&&performance.now()<suppressPlanClickUntil))return;
-      if(action==='view'){state.plan=false;inspector();draw();status();view?.resize();view?.fit(b.dataset.view);return;}
-      if(action==='plan'){state.plan=true;inspector();draw();status();return;}
+      if(action==='view'){state.mode=b.dataset.view==='front'?'flat':'3d';state.plan=false;inspector();draw();status();view?.resize();view?.fit(b.dataset.view);return;}
+      if(action==='plan'){state.mode='3d';state.plan=true;inspector();draw();status();return;}
       if(action==='plan-zoom'){state.planZoom=Math.max(.5,Math.min(4,state.planZoom*Number(b.dataset.factor)));draw();return;}
       if(action==='fit'){if(state.plan){state.planZoom=1;draw();}else view?.fit();return;}
       if(action==='overview'){state.overview=!state.overview;b.textContent=state.overview?'Stelling bekijken':'Ruimte bekijken';draw();view?.fit();return;}
       if(action==='rack'){select({rackId:b.dataset.id});return;}
       if(action==='product'){state.productId=Number(b.dataset.id);inspector();draw();return;}
       if(action==='rack-settings'){state.productId=null;inspector();draw();return;}
-      if(action==='reload'&&state.mode==='flat'){state.message='Gebruik Vernieuwen in de vakkenlijst hieronder.';status();return;}
       if(action==='reload'){if(state.dirty&&!confirm('Onopgeslagen maten weggooien en opnieuw laden?'))return;await load();return;}
       if(action==='mode'){
-        if(state.mode==='flat'&&$('.l3-flat .loc-actions')?.offsetHeight&&!confirm('Terug naar de 3D-editor? Sla wijzigingen in de vakkenlijst eerst op.'))return;
-        if(state.dirty&&!confirm('Onopgeslagen maten weggooien en naar de vakkenlijst gaan?'))return;
-        state.mode=state.mode==='3d'?'flat':'3d';$('.l3-work').hidden=state.mode!=='3d';$('.l3-flat').hidden=state.mode==='3d';b.textContent=state.mode==='3d'?'Vakkenlijst':'3D-editor';
-        if(state.mode==='flat'){state.dirty=false;const child=document.createElement('div');$('.l3-flat').replaceChildren(child);window.BinnenLocaties.mount(child,{...api,isActive:()=>api.isActive()&&state.mode==='flat'});status();}else await load();return;
+        state.mode=state.mode==='flat'?'3d':'flat';state.plan=false;render();view?.fit();return;
       }
       if(!admin()||!state.data)return;
       if(action==='add'){
@@ -279,9 +278,9 @@
     });
     $('.l3-canvas').addEventListener('view-error',e=>{viewError=e.detail;status();});
     const beforeUnload=e=>{if(state.dirty){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',beforeUnload);
-    instances.set(el,{activate(){if(state.mode==='3d'&&!state.dirty&&!state.busy)void load();else render();}});
+    instances.set(el,{activate(){if(!state.dirty&&!state.busy)void load();else render();}});
     render();
-    import('./locaties-3d-view.mjs').then(({createLocationView})=>{if(closed)return;view=createLocationView($('.l3-canvas'),select);draw();view.fit();}).catch(()=>{viewError='3D kan niet starten op deze pc. Gebruik de 2D-plattegrond of vakkenlijst; je gegevens blijven beschikbaar.';status();});
+    import('./locaties-3d-view.mjs').then(({createLocationView})=>{if(closed)return;view=createLocationView($('.l3-canvas'),select);draw();view.fit();}).catch(()=>{viewError='3D kan niet starten op deze pc. Gebruik de 2D-plattegrond en de instellingen rechts; je gegevens blijven beschikbaar.';status();});
     void load();
     window.addEventListener('pagehide',()=>{closed=true;view?.dispose();window.removeEventListener('beforeunload',beforeUnload);window.removeEventListener('blur',cancelDrag);window.removeEventListener('resize',cancelDrag);},{once:true});
   }};

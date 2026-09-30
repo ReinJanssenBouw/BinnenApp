@@ -43,6 +43,11 @@ app.whenReady().then(async()=>{
  await click(380,510);assert.equal(await w.webContents.executeJavaScript('window.lastProductHit?.productId'),1,'Foto-etiket selecteert de schroevendoos');
  await w.webContents.executeJavaScript("demoView.fit('perspective')");await new Promise(r=>setTimeout(r,200));
  fs.writeFileSync(path.join(root,'dist/productmodellen-preview.png'),(await w.webContents.capturePage()).toPNG());
+ await w.webContents.executeJavaScript("demoData.geometry.racks.test.angle=37;demoView.update(demoData,{rackId:'test',roomHeight:2600,frontView:true},false);demoView.fit();");await new Promise(r=>setTimeout(r,200));
+ fs.writeFileSync(path.join(root,'dist/vakkenlijst-vooraanzicht.png'),(await w.webContents.capturePage()).toPNG());
+ assert.equal(await w.webContents.executeJavaScript("document.querySelector('#view').dataset.view"),'front');
+ await click(240,520);assert.equal(await w.webContents.executeJavaScript('window.lastProductHit?.productId'),1,'Gedraaide stelling: product kiezen in vooraanzicht');
+ await click(310,350);assert.deepEqual(await w.webContents.executeJavaScript('window.lastProductHit'),{rackId:'test',x:1,y:2},'Leeg deel van het vak kiezen in vooraanzicht');
  await w.webContents.executeJavaScript('demoView.dispose()');assert.deepEqual(errors,[]);
  console.log('GESLAAGD: acht vormen, schroevendoos, productfoto, onvervormde verhoudingen, late fotoload, live foto en opruimen.');w.destroy();app.quit();
 }).catch(e=>{console.error(e);app.exit(1)});

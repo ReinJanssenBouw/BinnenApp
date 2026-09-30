@@ -31,7 +31,9 @@ app.whenReady().then(async()=>{
  click('[data-l3="unassign"][data-id="1"]');await wait();const removed=db.products[0].rack===null;
  click('[data-l3="assign"][data-id="1"]');await wait();click('[data-l3="rack-settings"]');
  fail=true;set('[data-dim="depth"]','85');click('[data-l3="save"]');await wait();const conflict=q('.l3-status').textContent.includes('Testconflict')&&!q('[data-l3="save"]').disabled&&db.geometry.racks[rackId].depth===80;fail=false;click('[data-l3="save"]');await wait();
- click('[data-l3="mode"]');await wait();const flat=!!q('.l3-flat .loc-panel');click('[data-l3="mode"]');await wait();
+ set('[data-dim="width"]','245');click('[data-l3="mode"]');await wait();
+ const flat=q('.l3-canvas').dataset.view==='front'&&!q('.l3-work').hidden&&q('[data-dim="width"]').value==='245'&&!q('[data-l3="save"]').disabled&&!q('[data-l3="save"]').hidden;
+ click('[data-l3="mode"]');await wait();if(q('[data-dim="width"]').value!=='245'||q('.l3-canvas').dataset.view!=='3d')throw Error('Voorbeeld wisselen verliest wijzigingen');set('[data-dim="width"]','240');click('[data-l3="save"]');await wait();
  click('[data-l3="add"]');set('[data-rack-field="name"]','Stelling B');click('[data-l3="save"]');await wait();
  click('[data-l3="rack"][data-id="'+rackId+'"]');set('[data-select="y"]','2','change');set('[data-select="x"]','1','change');click('[data-l3="product"][data-id="1"]');
  await new Promise(r=>setTimeout(r,1000));

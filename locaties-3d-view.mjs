@@ -4,12 +4,15 @@ import {createProductModels} from './locaties-productmodellen.mjs';
 
 export function createLocationView(host, onSelect) {
   const scene=new T.Scene(); scene.background=new T.Color('#eaf0f7');scene.fog=new T.Fog('#eaf0f7',25,65);
-  const camera=new T.PerspectiveCamera(40,1,.01,1000);
+  const perspectiveCamera=new T.PerspectiveCamera(40,1,.01,1000);
+  const frontCamera=new T.OrthographicCamera(-1,1,1,-1,.01,1000);
+  let camera=perspectiveCamera,frontHeight=2,frontView=false,frontKey='';
   const renderer=new T.WebGLRenderer({antialias:true,alpha:false});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(1,1);
   renderer.domElement.tabIndex=0; renderer.domElement.setAttribute('aria-label','3D-stellingen. Sleep om te draaien, scroll om te zoomen. Kies vakken ook via de instellingen rechts.');
   host.append(renderer.domElement);
   const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;controls.minDistance=.2;controls.maxDistance=200;controls.maxPolarAngle=Math.PI*.49;
+  controls.minZoom=.25;controls.maxZoom=8;
   scene.add(new T.HemisphereLight(0xffffff,0x667d98,2.4));
   const sun=new T.DirectionalLight(0xffffff,3);sun.position.set(5,9,7);scene.add(sun);
   const content=new T.Group();scene.add(content);
@@ -50,7 +53,7 @@ export function createLocationView(host, onSelect) {
     const near=(camera.position.x-panel.position.x)*nx+(camera.position.z-panel.position.z)*nz>0.01;
     panel.material.opacity=near ? 0.10 : 1;panel.material.depthWrite=!near;edge.material.opacity=near ? 0.2 : 0.7;
   }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
-  function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();render();}
+  function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);perspectiveCamera.aspect=w/h;perspectiveCamera.updateProjectionMatrix();frontCamera.top=frontHeight/2;frontCamera.bottom=-frontHeight/2;frontCamera.left=-frontHeight*w/h/2;frontCamera.right=frontHeight*w/h/2;frontCamera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
   function clear(){productModels.reset();content.traverse(o=>{o.geometry?.dispose();if(o.material){if(!o.material.map?.userData.sharedProductPhoto)o.material.map?.dispose();o.material.dispose();}});content.clear();targets=[];}
   function box(parent,w,h,d,x,y,z,color,hit){
@@ -63,9 +66,15 @@ export function createLocationView(host, onSelect) {
     const m=new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide}));m.position.set(x,y,z);parent.add(m);return m;
   }
   function update(data,selection,all=false){
-    snapshot=data;selected=selection;overview=all;walls.scale.y=(selection.roomHeight||2600)/1000;clear();
+    const switched=frontView!==!!selection.frontView;frontView=!!selection.frontView;
+    const nextFrontKey=JSON.stringify([selection.rackId,data.geometry.racks[selection.rackId]]),changedFront=frontKey!==nextFrontKey;frontKey=nextFrontKey;
+    camera=frontView?frontCamera:perspectiveCamera;controls.object=camera;controls.enableRotate=!frontView;controls.mouseButtons.LEFT=frontView?T.MOUSE.PAN:T.MOUSE.ROTATE;
+    controls.maxPolarAngle=frontView?Math.PI/2:Math.PI*.49;controls.screenSpacePanning=true;
+    room.visible=!frontView;host.dataset.view=frontView?'front':'3d';
+    renderer.domElement.setAttribute('aria-label',frontView?'Recht vooraanzicht van de stelling. Klik op vakken en producten, scroll om te zoomen en sleep om te verschuiven.':'3D-stellingen. Sleep om te draaien, scroll om te zoomen.');
+    snapshot=data;selected=selection;overview=all&&!frontView;walls.scale.y=(selection.roomHeight||2600)/1000;clear();
     for(const r of data.racks){
-      if(!all&&r.id!==selection.rackId)continue;
+      if(!overview&&r.id!==selection.rackId)continue;
       const g=data.geometry.racks[r.id],w=g.width/100,h=g.height/100,d=g.depth/100;
       const group=new T.Group();group.position.set(g.x/100,0,g.z/100);group.rotation.y=g.angle*Math.PI/180;content.add(group);
       const cellHeight=h/r.rows,inside=Math.max(.02,w-.08),segments=[];
@@ -105,9 +114,19 @@ export function createLocationView(host, onSelect) {
       }
       if(segments.length){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(segments,3));group.add(new T.LineSegments(geo,new T.LineBasicMaterial({color:0x8c9fb6})));}
     }
-    render();
+    if(switched||(frontView&&changedFront))fit();else render();
   }
   function fit(mode='perspective'){
+    if(frontView){
+      const rackGroup=content.children[0];
+      if(!rackGroup){controls.target.set(0,1,0);camera.position.set(0,1,5);frontHeight=3;camera.zoom=1;controls.update();resize();return;}
+      // Bereken het kader in stellingcoördinaten, ook bij een gedraaide stelling.
+      const local=rackGroup.clone();local.position.set(0,0,0);local.rotation.set(0,0,0);local.updateMatrixWorld(true);
+      const bounds=new T.Box3().setFromObject(local),s=bounds.getSize(new T.Vector3()),c=rackGroup.localToWorld(bounds.getCenter(new T.Vector3()));
+      const direction=new T.Vector3(0,0,1).applyQuaternion(rackGroup.quaternion);
+      frontHeight=Math.max(s.y,s.x/(host.clientWidth/Math.max(1,host.clientHeight)),.2)*1.18;camera.zoom=1;
+      controls.target.copy(c);camera.position.copy(c).add(direction.multiplyScalar(Math.max(s.z+3,5)));controls.update();resize();return;
+    }
     const bounds=new T.Box3().setFromObject(content);
     if(overview||bounds.isEmpty())bounds.union(new T.Box3().setFromObject(room));
     const c=bounds.getCenter(new T.Vector3()),s=bounds.getSize(new T.Vector3());
