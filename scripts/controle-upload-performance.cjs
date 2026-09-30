@@ -30,6 +30,7 @@ app.whenReady().then(async()=>{
  return {original,optimized,copies:100,instances,triangles,optimizedMs,originalMs};
  })()`);
  assert.deepEqual(errors,[]);assert(result.optimized<result.original*.2,'Het echte uploadmodel moet minstens 80% lichter zijn');assert.equal(result.instances,200);assert(result.triangles<600000);
+ await new Promise(resolve=>setTimeout(resolve,300));
  fs.writeFileSync(path.join(root,'dist/upload-performance-preview.png'),(await w.webContents.capturePage()).toPNG());
  fs.writeFileSync(path.join(root,'dist/upload-performance-result.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));await w.webContents.executeJavaScript('cleanup()');w.destroy();app.quit();
 }).catch(e=>{console.error(e);app.exit(1)});
