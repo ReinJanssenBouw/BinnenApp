@@ -1,4 +1,4 @@
-# Locatie in 3D (Windows 1.0.16)
+# Locatie in 3D (Windows 1.0.17)
 
 De ruimte heeft een vaste vloermaat van **6630 × 4820 mm**. Het model opent met de hele ruimte; met **Stelling bekijken** kun je een stelling van dichtbij bewerken. Stellingposities worden in centimeters gemeten vanaf het midden van de ruimte. Een waarschuwing verschijnt als een stelling, inclusief de ingestelde draaihoek, over de vloergrens steekt. De vier muren zijn voorlopig **2600 mm** hoog. Via **Hoogte muren** links kun je de hoogte aanpassen; deze instelling blijft op dezelfde pc bewaard. De muren aan de kijkzijde worden automatisch transparant, zodat de stellingen bereikbaar blijven.
 
@@ -6,7 +6,7 @@ Via **2D-plattegrond** zie je dezelfde ruimte en stellingen op schaal van bovena
 
 Open **Locatie**. Maak links een stelling en vul rechts breedte, hoogte en diepte in centimeters in. Onder **Rijen en productkolommen** kun je per rij het aantal vakken kiezen. Via **Positie in het magazijn** plaats en draai je stellingen ten opzichte van elkaar; **Ruimte bekijken** toont het geheel.
 
-Sla het model op en klik op een vak om een bestaand product toe te voegen. Klik daarna op het product om de breedte, hoogte en diepte van het product of de verpakking in te stellen. Elk artikel wordt als één blok getoond, onafhankelijk van de voorraad. Een waarschuwing geeft aan wanneer de gekozen maten niet passen. De startmaten zijn voorbeelden, geen opgemeten afmetingen.
+Sla het model op en klik op een vak om een bestaand product toe te voegen. Klik daarna op het product om de breedte, hoogte en diepte van het product of de verpakking in te stellen. Elk artikel wordt als één eenvoudig productmodel getoond, onafhankelijk van de voorraad. Schroeven en nagels staan in kartonnen dozen met hun eigen productfoto en JB-code op het etiket. Bussen, kitkokers, rollen, kwasten en verfbakjes hebben herkenbare basisvormen. Het zijn visuele benaderingen binnen de ingestelde afmetingen, geen exacte fabrikantmodellen. Foto’s behouden hun verhouding; ontbrekende foto’s houden een etiket met JB-code. Een waarschuwing geeft aan wanneer de gekozen maten niet passen. De startmaten zijn voorbeelden, geen opgemeten afmetingen.
 
 Sleep om te draaien, scroll om te zoomen en sleep met de rechtermuisknop om te verschuiven. De knoppen Voorkant, Bovenkant en Alles in beeld helpen bij het navigeren. De bestaande Vakkenlijst blijft beschikbaar. Alleen beheerders kunnen wijzigingen opslaan.
 

@@ -1,6 +1,6 @@
 {
   "name": "binnenapp",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "BinnenApp desktop app",
   "main": "main.js",
   "scripts": {
@@ -42,6 +42,7 @@
       "locaties-3d.js",
       "locaties-3d.css",
       "locaties-3d-view.mjs",
+      "locaties-productmodellen.mjs",
       "location-scene-store.js"
     ],
     "nsis": {

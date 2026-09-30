@@ -9,7 +9,7 @@ let cloud=false,admin=true,networkError=false;
 let layout={racks:[],revision:0,products:[{id:1,stock:8,min_stock:6}]};
 let scene={geometry:{version:1,racks:{},products:{}},sceneRevision:0};
 const copy=v=>JSON.parse(JSON.stringify(v));
-const supabase={rpc:async(name,args)=>{
+const supabase={from:table=>{assert.equal(table,'products');return {select:async fields=>{assert.equal(fields,'id,product_image_url');return {data:[{id:1,product_image_url:'https://binnenapp-mobiel.vercel.app/product-images/transparant/129122.png'}]};}};},rpc:async(name,args)=>{
  if(networkError)return {error:{code:'NETWORK',message:'Geen verbinding'}};
  if(name.includes('_scene')&&!cloud)return {error:{code:'PGRST202',message:'Missing RPC'}};
  if(name.includes('save_')&&!admin)return {error:{code:'42501',message:'Geen beheerder'}};
@@ -25,7 +25,7 @@ const create=()=>createLocationSceneStore({supabase,directory,projectUrl});
 const payload=d=>({racks:[rack],geometry,revision:d.revision,sceneRevision:d.sceneRevision,localRevision:d.localRevision});
 (async()=>{
  assert.throws(()=>createLocationSceneStore({supabase,directory,projectUrl:'https://wrong.supabase.co'}),/Onjuist/);
- let store=create(),d=await store.load();assert.equal(d.storage,'local');
+ let store=create(),d=await store.load();assert.equal(d.storage,'local');assert(d.products[0].product_image_url.endsWith('/129122.png'));
  const first=payload(d);d=await store.save(first);assert.equal(d.storage,'local');assert.deepEqual(d.geometry,geometry);
  // New main process/store instance must load the same dimensions from disk.
  store=create();d=await store.load();assert.deepEqual(d.geometry,geometry);assert.equal(d.localRevision,1);
@@ -39,7 +39,7 @@ const payload=d=>({racks:[rack],geometry,revision:d.revision,sceneRevision:d.sce
  // Enabling the RPC later preserves local work until the user saves it.
  cloud=true;d=await store.load();assert.equal(d.storage,'pending');assert.deepEqual(d.geometry,geometry);
  d=await store.save(payload(d));assert.equal(d.storage,'cloud');assert.deepEqual(scene.geometry,geometry);
- d=await create().load();assert.equal(d.storage,'cloud');assert.deepEqual(d.geometry,geometry);
+ d=await create().load();assert.equal(d.storage,'cloud');assert.deepEqual(d.geometry,geometry);assert(d.products[0].product_image_url.endsWith('/129122.png'));
  assert.deepEqual(layout.products,[{id:1,stock:8,min_stock:6}]);
  console.log('GESLAAGD: lokale persistentie na herstart, revisies, adminrechten, maatvalidatie, netwerkfouten en latere cloudsynchronisatie.');
 })().catch(e=>{console.error(e);process.exitCode=1});

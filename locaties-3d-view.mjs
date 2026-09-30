@@ -1,5 +1,6 @@
 import * as T from './vendor/three/three.module.min.js';
 import {OrbitControls} from './vendor/three/OrbitControls.js';
+import {createProductModels} from './locaties-productmodellen.mjs';
 
 export function createLocationView(host, onSelect) {
   const scene=new T.Scene(); scene.background=new T.Color('#eaf0f7');scene.fog=new T.Fog('#eaf0f7',25,65);
@@ -43,6 +44,7 @@ export function createLocationView(host, onSelect) {
   for(const label of [widthLabel,depthLabel]){label.material.depthTest=false;label.material.depthWrite=false;label.renderOrder=10;}
   let targets=[],snapshot,selected,overview=false,down=null,disposed=false;
   const ray=new T.Raycaster();
+  const productModels=createProductModels(render);
   function render(){if(!disposed&&host.clientWidth&&host.clientHeight){for(const panel of wallPanels){
     const {nx,nz,edge}=panel.userData.wall;
     const near=(camera.position.x-panel.position.x)*nx+(camera.position.z-panel.position.z)*nz>0.01;
@@ -50,7 +52,7 @@ export function createLocationView(host, onSelect) {
   }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
-  function clear(){content.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});content.clear();targets=[];}
+  function clear(){productModels.reset();content.traverse(o=>{o.geometry?.dispose();if(o.material){if(!o.material.map?.userData.sharedProductPhoto)o.material.map?.dispose();o.material.dispose();}});content.clear();targets=[];}
   function box(parent,w,h,d,x,y,z,color,hit){
     const mesh=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.72,metalness:.12}));mesh.position.set(x,y,z);parent.add(mesh);
     if(hit){mesh.userData.hit=hit;targets.push(mesh);}return mesh;
@@ -89,10 +91,11 @@ export function createLocationView(host, onSelect) {
           for(const p of items){
             const pg=data.geometry.products[p.id],pw=pg.width/100,ph=pg.height/100,pd=pg.depth/100;
             const overflow=totalWidth>cellWidth-.02||ph>cellHeight-.04||pd>d-.04;
-            const color=String(selection.productId)===String(p.id)?0x3675e2:overflow?0xc86955:0xc99d6b;
             const hit={rackId:r.id,x,y,productId:p.id};
-            box(group,pw,ph,pd,offset+pw/2,bottom+.028+ph/2,d/2-.015-pd/2,color,hit);
-            text(group,p.jb_code||String(p.id),offset+pw/2,bottom+.028+ph*.6,d/2-.012,Math.min(pw*.9,.45),Math.min(ph*.38,.11));
+            const model=productModels.create(p,{width:pw,height:ph,depth:pd},{selected:String(selection.productId)===String(p.id),overflow});
+            model.root.position.set(offset+pw/2,bottom+.028+ph/2,d/2-.015-pd/2);group.add(model.root);
+            model.root.traverse(o=>{if(o.isMesh){o.userData.hit=hit;targets.push(o);}});
+            text(group,p.jb_code||String(p.id),offset+pw/2,bottom+.028+ph*(.5+model.labelY),d/2-.015+pd*.01,Math.min(pw*.57,.3),Math.min(ph*.09,.035));
             offset+=pw+.02;
           }
           if(r.id===selection.rackId&&selection.x===x&&selection.y===y){
@@ -129,5 +132,5 @@ export function createLocationView(host, onSelect) {
   renderer.domElement.addEventListener('pointerdown',onDown);renderer.domElement.addEventListener('pointerup',onUp);
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();host.dispatchEvent(new CustomEvent('view-error',{detail:'3D-weergave onderbroken. Heropen Locatie of gebruik de vakkenlijst.'}));});
   resize();
-  return {update,fit,resize,dispose(){disposed=true;observer.disconnect();controls.dispose();clear();room.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();}};
+  return {update,fit,resize,dispose(){disposed=true;observer.disconnect();controls.dispose();clear();productModels.dispose();room.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();}};
 }

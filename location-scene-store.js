@@ -65,6 +65,11 @@ function createLocationSceneStore({supabase, directory, projectUrl}) {
     const layout = checked(await supabase.rpc('binnenapp_get_location_layout'));
     return {...layout,geometry:payload.geometry,sceneRevision:0,storage:'local',localRevision:local.revision+1};
   }
-  return {load,save(payload){const pending=queue.then(()=>saveNow(payload));queue=pending.catch(()=>{});return pending;}};
+  async function photos(){
+    const rows=checked(await supabase.from('products').select('id,product_image_url'))||[];
+    return new Map(rows.map(p=>[String(p.id),p.product_image_url]));
+  }
+  const withPhotos=(data,images)=>({...data,products:data.products.map(p=>({...p,product_image_url:images.get(String(p.id))||null}))});
+  return {async load(){const data=await load();return withPhotos(data,await photos());},save(payload){const pending=queue.then(async()=>{const images=await photos();return withPhotos(await saveNow(payload),images);});queue=pending.catch(()=>{});return pending;}};
 }
 module.exports={createLocationSceneStore};
