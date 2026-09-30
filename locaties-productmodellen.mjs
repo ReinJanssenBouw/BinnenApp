@@ -122,7 +122,7 @@ export function createProductModels(redraw,onModelError=()=>{}){
     root.scale.set(dimensions.width,dimensions.height,dimensions.depth);
     if(product.product_model_url){
       const fallback=[...root.children];root.userData.modelStatus='loading';
-      custom(product.product_model_url,model=>{root.userData.modelStatus=model?'ready':'error';if(model){for(const child of fallback)if(!child.isLineSegments)child.visible=false;root.add(model);root.userData.productShape='uploaded';}else onModelError(product);onChange();});
+      custom(product.product_model_url,model=>{root.userData.modelStatus=model?'ready':'error';if(model){if(kind==='cartridge')model.rotation.y=Math.PI;for(const child of fallback)if(!child.isLineSegments)child.visible=false;root.add(model);root.userData.productShape='uploaded';}else onModelError(product);onChange();});
     }
     return {root,labelY:labelY-labelHeight*.40,kind};
   }

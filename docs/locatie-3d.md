@@ -1,4 +1,6 @@
-# Locatie in 3D (Windows 1.0.26)
+# Locatie in 3D (Windows 1.0.27)
+
+In 1.0.27 staan geüploade kitmodellen 180 graden gedraaid om de verticale as, zodat de andere kant van het etiket naar de voorkant van de stelling wijst. De draaiing gebeurt rond het midden van het model, vóór plaatsing in het schap; buitenmaten en posities blijven gelijk.
 
 In 1.0.26 worden zware geüploade GLB-modellen eenmalig in een Web Worker vereenvoudigd met meshoptimizer 1.3.0. Richtbudget: 3000 driehoeken per model, met begrensde geometriefout en behoud van normalen, UV-etiketten en materiaalgroepen. De oorspronkelijke buitenmaten bepalen nog steeds de schaal; bronbestanden, database en productinstellingen veranderen niet. Bij een niet-ondersteunde vereenvoudiging blijft het origineel beschikbaar. De worker wordt bij sluiten opgeruimd.
 
