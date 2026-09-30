@@ -1,6 +1,8 @@
-# Locatie in 3D (Windows 1.0.20)
+# Locatie in 3D (Windows 1.0.21)
 
-In 1.0.20 blijft het tekenvlak zichtbaar bij het wisselen van stelling en het selecteren van vakken in het vooraanzicht. De cameraknoppen worden afzonderlijk verborgen; hun selector mag niet het tekenvlak met dezelfde `data-view` raken. `scripts/controle-vooraanzicht-wisselen.cjs` controleert vier stellingen met verschillende draaihoeken via echte muisklikken, inclusief vakselectie in het getoonde model.
+In 1.0.21 is **Model opslaan** ook beschikbaar als de getoonde startmaten nog ontbreken in de database. Nieuwe productmaten krijgen een startbreedte die past bij het toegewezen vak; bestaande ingevoerde maten worden behouden en blijven gevalideerd. De status legt uit of maten nog opgeslagen moeten worden of al opgeslagen zijn. `scripts/controle-eerste-modelopslag.cjs` controleert de eerste opslag, een smalle rij met 14 vakken, herladen, lokale migratie, bestaande maten, rechten en voorraadbehoud.
+
+Sinds 1.0.20 blijft het tekenvlak zichtbaar bij het wisselen van stelling en het selecteren van vakken in het vooraanzicht. De cameraknoppen worden afzonderlijk verborgen; hun selector mag niet het tekenvlak met dezelfde `data-view` raken. `scripts/controle-vooraanzicht-wisselen.cjs` controleert vier stellingen met verschillende draaihoeken via echte muisklikken, inclusief vakselectie in het getoonde model.
 
 De ruimte heeft een vaste vloermaat van **6630 × 4820 mm**. Het model opent met de hele ruimte; met **Stelling bekijken** kun je een stelling van dichtbij bewerken. Stellingposities worden in centimeters gemeten vanaf het midden van de ruimte. Een waarschuwing verschijnt als een stelling, inclusief de ingestelde draaihoek, over de vloergrens steekt. De vier muren zijn voorlopig **2600 mm** hoog. Via **Hoogte muren** links kun je de hoogte aanpassen; deze instelling blijft op dezelfde pc bewaard. De muren aan de kijkzijde worden automatisch transparant, zodat de stellingen bereikbaar blijven.
 

@@ -1,0 +1,46 @@
+// Isolated desktop/cloud-transition regression; never connects to production.
+const {app,BrowserWindow}=require('electron');
+const path=require('path'),fs=require('fs'),assert=require('assert');
+app.setPath('userData',path.resolve(__dirname,'../dist/first-scene-save-test'));
+app.commandLine.appendSwitch('use-angle','swiftshader');
+app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+app.whenReady().then(async()=>{
+ setTimeout(()=>app.exit(2),45000).unref();
+ const root=path.resolve(__dirname,process.argv.includes('--packaged')?'../dist/win-unpacked/resources/app.asar':'..');
+ const prefix=require('url').pathToFileURL(root).href+'/';
+ const file=path.resolve(__dirname,'../dist/first-scene-save.html');
+ fs.writeFileSync(file,`<!doctype html><link rel="stylesheet" href="${prefix}locaties-3d.css"><div id="test"></div><script src="${prefix}locaties-3d.js"></script>`);
+ const w=new BrowserWindow({show:false,width:1440,height:950,webPreferences:{offscreen:true,backgroundThrottling:false}});
+ const errors=[];w.webContents.on('console-message',e=>{if(e.level==='error')errors.push(e.message)});
+ await w.loadFile(file);
+ const result=await w.webContents.executeJavaScript(`(async()=>{
+  const q=s=>document.querySelector(s),copy=x=>JSON.parse(JSON.stringify(x));
+  const wait=()=>new Promise(r=>setTimeout(r,150)),check=(v,msg)=>{if(!v)throw Error(msg)};
+  let admin=true,saves=0;
+  let db={racks:[{id:'rack-1',name:'Stelling 1',rows:6,columns:3,rowColumns:[3,3,3,3,14,3]}],products:[{id:1,jb_code:'JB0001',description:'Test schroeven',rack:'Stelling 1',x_axis:'1',y_axis:'5',stock:8,min_stock:6}],geometry:{version:1,racks:{},products:{}},revision:9,sceneRevision:0,storage:'cloud'};
+  const api={isAdmin:()=>admin,isActive:()=>true,loadScene:async()=>copy(db),saveScene:async p=>{saves++;db={...db,...copy(p),revision:db.revision+1,sceneRevision:db.sceneRevision+1,storage:'cloud'};return copy(db)}};
+  window.confirm=()=>true;BinnenLocaties3D.mount(q('#test'),api);await wait();
+  check(!q('[data-l3="save"]').disabled,'First cloud save must work without changing a field');
+  check(q('.l3-status').textContent.includes('nog niet opgeslagen'),'Explain missing dimensions');
+  q('[data-l3="save"]').click();await wait();
+  check(saves===1&&db.geometry.racks['rack-1'].width===200,'Save initial rack dimensions');
+  check(db.geometry.products[1].width===10.7,'New product default must fit 14-column row');
+  check(db.products[0].stock===8&&db.products[0].min_stock===6,'Stock remains unchanged');
+  check(q('[data-l3="save"]').disabled,'No duplicate save after persistence');
+  q('[data-l3="reload"]').click();await wait();check(q('[data-l3="save"]').disabled,'Saved values survive reload');
+  db.storage='pending';db.geometry.racks['rack-1'].width=240;db.geometry.products[1].width=12.5;
+  q('[data-l3="reload"]').click();await wait();
+  check(!q('[data-l3="save"]').disabled,'Pending local dimensions can sync');
+  q('[data-l3="save"]').click();await wait();
+  check(db.geometry.racks['rack-1'].width===240&&db.geometry.products[1].width===12.5,'Preserve explicit local dimensions');
+  db.geometry.products[1].width=30;q('[data-l3="reload"]').click();await wait();
+  check(q('[data-l3="save"]').disabled&&q('.l3-status').textContent.includes('te breed'),'Existing invalid width remains blocked with explanation');
+  check(db.geometry.products[1].width===30,'Do not silently alter explicit dimensions');
+  db.geometry.products={};q('[data-l3="reload"]').click();await wait();check(!q('[data-l3="save"]').disabled,'New product dimensions can be saved into existing model');
+  admin=false;q('[data-l3="reload"]').click();await wait();check(q('[data-l3="save"]').hidden&&q('[data-l3="save"]').disabled,'Members cannot save');
+  return {saves,stock:db.products[0].stock};
+ })()`);
+ assert.deepEqual(errors,[]);assert.equal(result.saves,2);assert.equal(result.stock,8);
+ console.log('GESLAAGD: eerste cloudopslag zonder invoer, passende startbreedte, herladen, lokale migratie, bestaande maten, validatie, rechten en voorraadbehoud.');
+ w.destroy();app.quit();
+}).catch(e=>{console.error(e);app.exit(1)});

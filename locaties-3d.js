@@ -9,7 +9,7 @@
   const validNumber=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
   window.BinnenLocaties3D={mount(el,api){
     if(instances.has(el)){instances.get(el).activate();return;}
-    const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,busy:false,mode:'3d',query:'',overview:true,plan:false,planZoom:1,roomHeight:savedRoomHeight(),message:'Stellingen laden…'};
+    const state={data:null,rackId:null,x:null,y:null,productId:null,dirty:false,needsSave:false,busy:false,mode:'3d',query:'',overview:true,plan:false,planZoom:1,roomHeight:savedRoomHeight(),message:'Stellingen laden…'};
     let view=null,closed=false,viewError='',planDrag=null,suppressPlanClickUntil=0;
     el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective" aria-pressed="true">3D</button><button type="button" data-l3="plan" aria-pressed="false">2D-plattegrond</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button><button type="button" data-l3="plan-zoom" data-factor="1.25" aria-label="Plattegrond inzoomen" hidden>＋</button><button type="button" data-l3="plan-zoom" data-factor="0.8" aria-label="Plattegrond uitzoomen" hidden>−</button></div><div class="l3-canvas"></div><div class="l3-plan" hidden></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div></section>`;
     const root=el.querySelector('.l3-root'),$=s=>root.querySelector(s);
@@ -29,7 +29,12 @@
     function normalize(data){
       data=clone(data);data.geometry={version:1,racks:{...data.geometry?.racks},products:{...data.geometry?.products}};
       data.racks.forEach((r,i)=>{r.rows=Number(r.rows);r.rowColumns=Array.from({length:r.rows},(_,y)=>Number(r.rowColumns?.[y]??r.columns));data.geometry.racks[r.id]??={width:200,height:200,depth:60,x:(i%3-1)*210,z:-170+Math.floor(i/3)*100,angle:0};});
-      for(const p of data.products)data.geometry.products[p.id]??={width:20,height:25,depth:20};
+      for(const p of data.products)if(!data.geometry.products[p.id]){
+        const r=data.racks.find(r=>r.name===p.rack),columns=r?.rowColumns[Number(p.y_axis)-1];
+        const max=columns?Math.floor(((data.geometry.racks[r.id].width-8)/columns-3)*10+1e-7)/10:20;
+        // Alleen nieuwe voorbeeldmaten passend maken; ingevoerde maten behouden.
+        data.geometry.products[p.id]={width:Math.max(.1,Math.min(20,max)),height:25,depth:20};
+      }
       const ids=new Set(data.racks.map(r=>r.id));for(const id of Object.keys(data.geometry.racks))if(!ids.has(id))delete data.geometry.racks[id];
       const productIds=new Set(data.products.map(p=>String(p.id)));for(const id of Object.keys(data.geometry.products))if(!productIds.has(id))delete data.geometry.products[id];
       return data;
@@ -47,12 +52,13 @@
       return widthError();
     }
     function status(){
-      const error=state.dirty?validation():widthError();
+      const error=state.data?validation():'';
       $('.l3-storage').hidden=!['local','pending'].includes(state.data?.storage);
       $('.l3-storage').textContent=state.data?.storage==='pending'?'Je lokale maten staan klaar om te delen. Klik op Model opslaan.':'3D-maten worden op deze pc bewaard. Stellingen en productlocaties worden met de andere apparaten gedeeld.';
-      $('.l3-status').textContent=error||(!state.plan&&viewError)||state.message||(state.dirty?'Niet opgeslagen · sla je model op om deze maten te bewaren.':'Maten in centimeters · controleer de startmaten met je echte stellingen.');
+      $('.l3-status').textContent=error||(!state.plan&&viewError)||state.message||(state.dirty?'Niet opgeslagen · sla je model op om deze maten te bewaren.':state.needsSave?'Deze maten zijn nog niet opgeslagen. Controleer de startmaten en klik op Model opslaan.':'Alle modelmaten zijn opgeslagen.');
       $('.l3-status').classList.toggle('is-error',!!error);
-      $('[data-l3="save"]').disabled=!admin()||state.busy||!state.dirty||!!error;
+      $('[data-l3="save"]').disabled=!admin()||state.busy||!state.data||(!state.dirty&&!state.needsSave)||!!error;
+      $('[data-l3="save"]').title=error||(!state.dirty&&!state.needsSave?'Alle modelmaten zijn al opgeslagen.':'Huidige modelmaten opslaan');
       $('[data-l3="save"]').textContent=state.busy?'Even wachten…':'Model opslaan';
       $('[data-l3="save"]').hidden=!admin();
       $('[data-l3="reload"]').disabled=state.busy;
@@ -197,6 +203,7 @@
     }
     function render(){renderRacks();inspector();status();draw();}
     function adopt(data){
+      state.needsSave=data.racks.some(r=>!data.geometry?.racks?.[r.id])||data.products.some(p=>!data.geometry?.products?.[p.id]);
       state.data=normalize(data);if(!state.data.racks.some(r=>r.id===state.rackId)){state.rackId=state.data.racks[0]?.id||null;state.x=null;state.y=null;state.productId=null;}
       const r=rack();if(r&&(state.y>r.rows||state.x>(r.rowColumns[state.y-1]||0))){state.x=null;state.y=null;state.productId=null;}
     }
