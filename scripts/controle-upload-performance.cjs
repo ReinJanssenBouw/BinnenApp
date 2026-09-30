@@ -18,7 +18,7 @@ app.whenReady().then(async()=>{
  if(batch.root.userData.modelStatus!=='ready')throw Error('Uploaded model not ready');
  const scene=new T.Scene();scene.background=new T.Color('#eaf0f7');scene.add(batch.root,new T.HemisphereLight(0xffffff,0x667d98,2.4));const sun=new T.DirectionalLight(0xffffff,3);sun.position.set(2,4,3);scene.add(sun);
  const camera=new T.PerspectiveCamera(40,1100/750,.01,100);camera.position.set(.9,.7,1.3);camera.lookAt(.225,0,-.225);
- const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(1100,750);document.body.append(renderer.domElement);
+ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(1100,750);document.body.append(renderer.domElement);
  let optimized=0,instances=0;batch.root.traverse(o=>{if(o.isInstancedMesh){optimized+=o.geometry.index.count/3;instances+=o.count;}});
  const measure=()=>{renderer.render(scene,camera);const gl=renderer.getContext(),pixel=new Uint8Array(4),start=performance.now();for(let i=0;i<8;i++){camera.position.x+=.001;renderer.render(scene,camera);gl.readPixels(550,375,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);}return Math.round((performance.now()-start)/8);};
  const optimizedMs=measure(),triangles=renderer.info.render.triangles;
