@@ -26,6 +26,8 @@ function createProductModelStore({supabase,projectUrl}){
  async function save(p){
   const productId=id(p.productId),dimensions=p.dimensions;
   if(!dimensions||!['width','height','depth'].every(k=>typeof dimensions[k]==='number'&&Number.isFinite(dimensions[k])&&dimensions[k]>=.1&&dimensions[k]<=500))throw Error('Vul breedte, hoogte en diepte in van 0,1 tot 500 cm.');
+  const counts=['across','behind'].map(k=>dimensions[k]??1);
+  if(counts.some(n=>!Number.isInteger(n)||n<1||n>50)||counts[0]*counts[1]>250)throw Error('Vul gehele aantallen van 1 tot 50 in, met maximaal 250 plaatsen per product.');
   const membership=check(await supabase.rpc('binnenapp_membership_status'));
   if(!membership?.active||membership.role!=='admin')throw Error('Alleen de beheerder kan een productmodel opslaan.');
   const before=await get(productId);

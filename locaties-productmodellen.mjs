@@ -26,13 +26,13 @@ export function createProductModels(redraw,onModelError=()=>{}){
       promise=new GLTFLoader(manager).loadAsync(url).then(gltf=>{
         const source=gltf.scene,bounds=new T.Box3().setFromObject(source),size=bounds.getSize(new T.Vector3());
         if(![size.x,size.y,size.z].every(n=>Number.isFinite(n)&&n>0)){disposeSource(source);throw Error('Model heeft geen geldige buitenmaten');}
-        source.traverse(o=>{for(const m of [].concat(o.material||[]))for(const v of Object.values(m))if(v?.isTexture)v.userData.sharedProductPhoto=true;});
+        source.traverse(o=>{if(o.geometry)o.geometry.userData.sharedProductModel=true;for(const m of [].concat(o.material||[]))for(const v of Object.values(m))if(v?.isTexture)v.userData.sharedProductPhoto=true;});
         if(disposed){disposeSource(source);throw Error('Weergave gesloten');}return {source,bounds,size};
       });models.set(url,promise);
     }
     promise.then(({source,bounds,size})=>{
       if(disposed||generation!==current)return;
-      const copy=source.clone(true);copy.traverse(o=>{if(o.geometry)o.geometry=o.geometry.clone();if(o.material)o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();});
+      const copy=source.clone(true);copy.traverse(o=>{if(o.material)o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();});
       const center=bounds.getCenter(new T.Vector3()),unit=new T.Group();unit.scale.set(1/size.x,1/size.y,1/size.z);copy.position.sub(center);unit.add(copy);apply(unit);redraw();
     }).catch(()=>{if(!disposed&&generation===current){apply(null);redraw();}});
   }

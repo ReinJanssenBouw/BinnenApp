@@ -1,4 +1,8 @@
-# Locatie in 3D (Windows 1.0.23)
+# Locatie in 3D (Windows 1.0.24)
+
+In 1.0.24 kun je per product **Naast elkaar** en **Achter elkaar** invullen, zowel bij de productmaten in Locatie als in het uploadvenster. 3 naast × 4 achter toont 12 productmodellen; de actuele voorraad blijft apart en wordt niet gewijzigd. Bestaande producten beginnen met 1 × 1. Aantallen zijn gehele getallen van 1 tot 50 met maximaal 250 plaatsen per product. De weergave waarschuwt als de totale breedte of diepte niet in het vak past. Maten en aantallen worden samen met revisiecontrole opgeslagen; oudere clients die aantallen weglaten behouden de bestaande waarden. GLB-exemplaren delen hun geometrie en afbeeldingen om geheugengebruik te beperken.
+
+Migratie `20260930170000_product_schapindeling.sql` is op 30 september 2026 uitgevoerd op BinnenApp `guurncfxhcxwvgnzoeyp`. `controle-schapindeling.sql` bevestigt opslag, herladen, behoud bij oudere clients, invoervalidatie, conflicten en ongewijzigde productvoorraad. `controle-schapindeling-ui.cjs` controleert twaalf modellen op drie X-posities en vier Z-posities, de capaciteit, opslag en waarschuwingen.
 
 Vanaf 1.0.23 kan de beheerder per opgeslagen artikel via **Artikel bewerken > Locatie > 3D-model en maten instellen** een eigen statisch **GLB 2.0** uploaden (maximaal 20 MB, afbeeldingen ingesloten, zonder Draco/Meshopt/KTX2). Breedte, hoogte en diepte zijn buitenmaten in centimeters. De breedte is begrensd door het huidige vak. Maten kunnen ook zonder nieuw bestand worden aangepast. Bestanden staan in de private BinnenApp Storage-bucket `product-models`; metadata staat in `private.product_models`, afmetingen in de bestaande gedeelde `private.location_scene`. De viewer schaalt het model naar deze maten; bij een laadfout blijft de standaardvorm zichtbaar met een melding. Sluit en heropen Locatie of klik Vernieuwen om wijzigingen op te halen. Bestaande lokale modellen moeten eerst via **Model opslaan** gedeeld worden.
 

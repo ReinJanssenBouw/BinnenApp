@@ -26,12 +26,14 @@ app.whenReady().then(async()=>{
   const q=s=>document.querySelector('.pm-dialog '+s),bytes=new Uint8Array(await (await fetch(${JSON.stringify(model)})).arrayBuffer());
   const transfer=new DataTransfer();transfer.items.add(new File([bytes],'product.glb',{type:'model/gltf-binary'}));q('[data-file]').files=transfer.files;
   q('[data-dim="width"]').value='26';q('form').requestSubmit();if(window.saveCount!==0)throw Error('Vakbreedte niet begrensd');
-  q('[data-dim="width"]').value='24';q('form').requestSubmit();
+  q('[data-dim="width"]').value='24';q('[data-dim="across"]').value='3';q('[data-dim="behind"]').value='4';q('[data-dim="across"]').dispatchEvent(new Event('input',{bubbles:true}));if(!q('[data-capacity]').textContent.includes('12 plaatsen')||!q('[data-fit]').textContent.includes('breed'))throw Error('Capaciteit of paswaarschuwing ontbreekt');q('form').requestSubmit();
   if(!q('[data-save]').disabled)throw Error('Dubbele opslag mogelijk');
   for(let i=0;i<50&&q('[data-save]').disabled;i++)await new Promise(r=>setTimeout(r,20));
+  if(lastPayload.dimensions.across!==3||lastPayload.dimensions.behind!==4)throw Error('Aantallen ontbreken in opslag');
   if(saveCount!==1||lastPayload.bytes.length!==bytes.length||lastPayload.dimensions.width!==24)throw Error('Upload of maten ontbreken');
   if(!q('[data-status]').textContent.includes('opgeslagen'))throw Error('Bevestiging ontbreekt');
   q('[data-close]').click();await BinnenProductModel.open(1,'JB0001 · Proefproduct');
+  if(q('[data-dim="across"]').value!=='3'||q('[data-dim="behind"]').value!=='4')throw Error('Aantallen niet herladen');
   if(q('[data-dim="width"]').value!=='24'||!q('[data-current]').textContent.includes('product.glb'))throw Error('Heropenen verloor gegevens');
   return {modelSize:size.toArray(),upload:true,widthLimit:true,reopen:true};
  })()`);

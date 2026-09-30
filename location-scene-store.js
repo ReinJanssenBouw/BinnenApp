@@ -34,6 +34,7 @@ function createLocationSceneStore({supabase, directory, projectUrl}) {
     const dims = (value, limits) => value && Object.entries(limits).every(([key,[min,max]]) => typeof value[key] === 'number' && Number.isFinite(value[key]) && value[key] >= min && value[key] <= max);
     for (const [id,g] of Object.entries(geometry.racks)) if (!racks.some(r => r.id === id) || !dims(g,rackLimits)) throw new Error('Ongeldige stellingmaten.');
     for (const [id,g] of Object.entries(geometry.products)) if (!/^\d{1,18}$/.test(id) || !dims(g,{width:[.1,500],height:[.1,500],depth:[.1,500]})) throw new Error('Ongeldige productmaten.');
+    for(const g of Object.values(geometry.products)){const a=g.across??1,b=g.behind??1;if(![a,b].every(n=>Number.isInteger(n)&&n>=1&&n<=50)||a*b>250)throw new Error('Vul gehele aantallen van 1 tot 50 in, met maximaal 250 plaatsen per product.');}
   }
   async function load() {
     const response = await supabase.rpc('binnenapp_get_location_scene');

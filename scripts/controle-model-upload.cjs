@@ -23,10 +23,12 @@ if(require.main===module)(async()=>{
   throw Error(name);
  },storage:{from:bucket=>{assert.equal(bucket,'product-models');return {upload:async(p,b,o)=>{assert(p.startsWith('1/'));assert.equal(o.upsert,false);assert.deepEqual(b,bytes);uploadCount++;return {data:{path:p}};}}}}};
  const store=createProductModelStore({supabase,projectUrl:'https://guurncfxhcxwvgnzoeyp.supabase.co'});
- const input={productId:1,sceneRevision:1,dimensions:{width:20,height:30,depth:40},bytes,name:'box.glb'};
+ const input={productId:1,sceneRevision:1,dimensions:{width:20,height:30,depth:40,across:3,behind:4},bytes,name:'box.glb'};
+ await assert.rejects(store.save({...input,dimensions:{...input.dimensions,across:1.5}}),/gehele/);
+ await assert.rejects(store.save({...input,dimensions:{...input.dimensions,across:50,behind:50}}),/250/);
  admin=false;await assert.rejects(store.save(input),/beheerder/);admin=true;
  await assert.rejects(store.save({...input,dimensions:{width:30,height:30,depth:40}}),/maximaal/);assert.equal(uploadCount,0);
- await store.save(input);assert.equal(uploadCount,1);assert.equal(record.name,'box.glb');assert.equal(record.dimensions.height,30);
+ await store.save(input);assert.equal(uploadCount,1);assert.equal(record.name,'box.glb');assert.equal(record.dimensions.height,30);assert.equal(record.dimensions.across,3);assert.equal(record.dimensions.behind,4);
  await assert.rejects(store.save(input),/gewijzigd/);assert.equal(uploadCount,1);
  await store.save({productId:1,sceneRevision:2,dimensions:{width:21,height:31,depth:41}});assert.equal(uploadCount,1);assert.equal(record.name,'box.glb');
  fs.writeFileSync(path.resolve(__dirname,'../dist/test-product.glb'),bytes);

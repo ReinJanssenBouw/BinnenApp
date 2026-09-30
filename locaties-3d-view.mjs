@@ -1,3 +1,4 @@
+export function shelfCounts(g){const valid=n=>Number.isInteger(n)&&n>=1&&n<=50;const across=valid(g?.across)?g.across:1,behind=valid(g?.behind)?g.behind:1;return across*behind<=250?{across,behind}:{across:1,behind:1};}
 import * as T from './vendor/three/three.module.min.js';
 import {OrbitControls} from './vendor/three/OrbitControls.js';
 import {createProductModels} from './locaties-productmodellen.mjs';
@@ -55,7 +56,7 @@ export function createLocationView(host, onSelect) {
   }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);perspectiveCamera.aspect=w/h;perspectiveCamera.updateProjectionMatrix();frontCamera.top=frontHeight/2;frontCamera.bottom=-frontHeight/2;frontCamera.left=-frontHeight*w/h/2;frontCamera.right=frontHeight*w/h/2;frontCamera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
-  function clear(){productModels.reset();content.traverse(o=>{o.geometry?.dispose();for(const material of [].concat(o.material||[])){for(const v of Object.values(material))if(v?.isTexture&&!v.userData.sharedProductPhoto)v.dispose();material.dispose();}});content.clear();targets=[];}
+  function clear(){productModels.reset();content.traverse(o=>{if(!o.geometry?.userData.sharedProductModel)o.geometry?.dispose();for(const material of [].concat(o.material||[])){for(const v of Object.values(material))if(v?.isTexture&&!v.userData.sharedProductPhoto)v.dispose();material.dispose();}});content.clear();targets=[];}
   function box(parent,w,h,d,x,y,z,color,hit){
     const mesh=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.72,metalness:.12}));mesh.position.set(x,y,z);parent.add(mesh);
     if(hit){mesh.userData.hit=hit;targets.push(mesh);}return mesh;
@@ -95,18 +96,21 @@ export function createLocationView(host, onSelect) {
             plane.position.set(left+cellWidth/2,bottom+cellHeight/2,d/2+.006);plane.userData.hit={rackId:r.id,x,y};group.add(plane);targets.push(plane);
           }
           const items=products.filter(p=>Number(p.x_axis)===x&&Number(p.y_axis)===y);
-          const totalWidth=items.reduce((a,p)=>a+data.geometry.products[p.id].width/100+.02,0);
+          const totalWidth=items.reduce((a,p)=>a+data.geometry.products[p.id].width/100*shelfCounts(data.geometry.products[p.id]).across+.02,0);
           let offset=left+.015;
           for(const p of items){
             const pg=data.geometry.products[p.id],pw=Math.min(pg.width/100,Math.max(0,cellWidth-.03)),ph=pg.height/100,pd=pg.depth/100;
             if(pw<=0)continue;
-            const overflow=totalWidth>cellWidth-.02||ph>cellHeight-.04||pd>d-.04;
+            const {across,behind}=shelfCounts(pg);
+            const overflow=totalWidth>cellWidth-.02||ph>cellHeight-.04||pd*behind>d-.04;
             const hit={rackId:r.id,x,y,productId:p.id};
+            for(let col=0;col<across;col++)for(let row=0;row<behind;row++){
             const model=productModels.create(p,{width:pw,height:ph,depth:pd},{selected:String(selection.productId)===String(p.id),overflow});
-            model.root.position.set(offset+pw/2,bottom+.028+ph/2,d/2-.015-pd/2);group.add(model.root);
+            model.root.position.set(offset+pw*(col+.5),bottom+.028+ph/2,d/2-.015-pd*(row+.5));group.add(model.root);
             model.root.traverse(o=>{if(o.isMesh){o.userData.hit=hit;targets.push(o);}});
-            text(group,p.jb_code||String(p.id),offset+pw/2,bottom+.028+ph*(.5+model.labelY),d/2-.015+pd*.01,Math.min(pw*.57,.3),Math.min(ph*.09,.035));
-            offset+=pw+.02;
+            if(row===0)text(group,p.jb_code||String(p.id),offset+pw*(col+.5),bottom+.028+ph*(.5+model.labelY),d/2-.015+pd*.01,Math.min(pw*.57,.3),Math.min(ph*.09,.035));
+            }
+            offset+=pw*across+.02;
           }
           if(r.id===selection.rackId&&selection.x===x&&selection.y===y){
             const outline=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(cellWidth,cellHeight-.035,d+.015)),new T.LineBasicMaterial({color:0x2b70ed}));outline.position.set(left+cellWidth/2,bottom+cellHeight/2,0);group.add(outline);

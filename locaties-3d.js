@@ -26,7 +26,7 @@
       const p=state.data?.products.find(p=>state.data.geometry.products[p.id]?.width>widthLimit(p)+1e-7);
       return p?`${p.jb_code||p.description} is te breed voor het vak. Maximale breedte: ${widthLimit(p)} cm. Verklein het product of maak het vak breder.`:'';
     }
-    const field=(label,key,value,min,max,scope='rack',step='0.1')=>`<label>${label}<div class="l3-input-unit"><input type="number" data-dim="${key}" data-scope="${scope}" min="${min}" max="${max}" step="${step}" required value="${esc(value)}" ${!admin()||state.busy?'disabled':''}><span>${key==='angle'?'°':'cm'}</span></div></label>`;
+    const field=(label,key,value,min,max,scope='rack',step='0.1')=>`<label>${label}<div class="l3-input-unit"><input type="number" data-dim="${key}" data-scope="${scope}" min="${min}" max="${max}" step="${step}" required value="${esc(value)}" ${!admin()||state.busy?'disabled':''}><span>${key==='angle'?'°':['across','behind'].includes(key)?'st.':'cm'}</span></div></label>`;
     function normalize(data){
       data=clone(data);data.geometry={version:1,racks:{...data.geometry?.racks},products:{...data.geometry?.products}};
       data.racks.forEach((r,i)=>{r.rows=Number(r.rows);r.rowColumns=Array.from({length:r.rows},(_,y)=>Number(r.rowColumns?.[y]??r.columns));data.geometry.racks[r.id]??={width:200,height:200,depth:60,x:(i%3-1)*210,z:-170+Math.floor(i/3)*100,angle:0};});
@@ -37,6 +37,7 @@
         data.geometry.products[p.id]={width:Math.max(.1,Math.min(20,max)),height:25,depth:20};
       }
       const ids=new Set(data.racks.map(r=>r.id));for(const id of Object.keys(data.geometry.racks))if(!ids.has(id))delete data.geometry.racks[id];
+      for(const g of Object.values(data.geometry.products)){g.across??=1;g.behind??=1;}
       const productIds=new Set(data.products.map(p=>String(p.id)));for(const id of Object.keys(data.geometry.products))if(!productIds.has(id))delete data.geometry.products[id];
       return data;
     }
@@ -49,6 +50,7 @@
         if(!Number.isInteger(r.rows)||r.rows<1||r.rows>50||r.rowColumns.length!==r.rows||r.rowColumns.some(n=>!Number.isInteger(n)||n<1||n>50))return 'Kies 1 tot 50 rijen en kolommen per rij.';
         if(Object.entries(rackLimits).some(([key,[min,max]])=>!validNumber(state.data.geometry.racks[r.id][key],min,max)))return 'Controleer de stellingmaten en positie. Gebruik de grenzen bij het veld.';
       }
+      for(const g of Object.values(state.data.geometry.products)){if(![g.across??1,g.behind??1].every(n=>Number.isInteger(n)&&n>=1&&n<=50)||(g.across??1)*(g.behind??1)>250)return 'Vul gehele aantallen van 1 tot 50 in, met maximaal 250 plaatsen per product.';}
       for(const g of Object.values(state.data.geometry.products))if(['width','height','depth'].some(k=>!validNumber(g[k],.1,500)))return 'Productmaten moeten tussen 0,1 en 500 cm liggen.';
       return widthError();
     }
@@ -177,8 +179,8 @@
     function warnings(){
       const r=rack();if(!r||!state.x||!state.y)return '';
       const g=state.data.geometry.racks[r.id],items=group(),cw=(g.width-8)/r.rowColumns[state.y-1],ch=g.height/r.rows-4;
-      const tooWide=items.reduce((sum,p)=>sum+state.data.geometry.products[p.id].width+2,0)>cw-2;
-      const tall=items.some(p=>state.data.geometry.products[p.id].height>ch),deep=items.some(p=>state.data.geometry.products[p.id].depth>g.depth-4);
+      const tooWide=items.reduce((sum,p)=>sum+state.data.geometry.products[p.id].width*(state.data.geometry.products[p.id].across??1)+2,0)>cw-2;
+      const tall=items.some(p=>state.data.geometry.products[p.id].height>ch),deep=items.some(p=>state.data.geometry.products[p.id].depth*(state.data.geometry.products[p.id].behind??1)>g.depth-4);
       return tooWide||tall||deep?`<p class="l3-warning">Past nog niet: ${[tooWide?'producten samen te breed':'',tall?'product te hoog':'',deep?'product te diep':''].filter(Boolean).join(', ')}. Pas de maten aan of kies een ander vak.</p>`:'';
     }
     function choices(){
@@ -194,13 +196,13 @@
       const r=rack();if(!r){$('.l3-inspector').innerHTML='<div class="l3-empty"><h2>Begin met een stelling</h2><p>Maak links een stelling. Stel daarna de afmetingen in en kies een vak voor je producten.</p></div>';return;}
       const g=state.data.geometry.racks[r.id],p=product(),pg=p&&state.data.geometry.products[p.id];
       $('.l3-inspector').innerHTML=`<div class="l3-inspector-title"><span class="l3-eyebrow">${p?'PRODUCT':'STELLING'}</span><h2>${esc(p?p.jb_code:r.name)}</h2>${p?`<p>${esc(p.description)}</p><button type="button" data-l3="rack-settings">← Stellingmaten</button>`:''}</div>
-      ${roomWarning(g)}${p?`<div class="l3-fields">${field('Breedte','width',pg.width,.1,widthLimit(p),'product')}${field('Hoogte','height',pg.height,.1,500,'product')}${field('Diepte','depth',pg.depth,.1,500,'product')}</div><p class="l3-muted">Maximale breedte in dit vak: ${widthLimit(p)} cm. Maten van het product of de verpakking die je in dit vak neerzet. Eén eenvoudig model per product, onafhankelijk van de voorraad. Schroeven staan in een doos met productfoto. De vorm is een benadering.</p>`:`
+      ${roomWarning(g)}${p?`<div class="l3-fields">${field('Breedte','width',pg.width,.1,widthLimit(p),'product')}${field('Hoogte','height',pg.height,.1,500,'product')}${field('Diepte','depth',pg.depth,.1,500,'product')}</div><div class="l3-fields">${field('Naast elkaar','across',pg.across??1,1,50,'product','1')}${field('Achter elkaar','behind',pg.behind??1,1,50,'product','1')}</div><p class="l3-capacity">${(pg.across??1)*(pg.behind??1)} plaatsen · ${pg.across??1} naast × ${pg.behind??1} achter</p><p class="l3-muted">Maximale breedte in dit vak: ${widthLimit(p)} cm. Maten van het product of de verpakking die je in dit vak neerzet. De aantallen tonen de capaciteit van dit product in het vak en veranderen de voorraad niet. Het eigen model of de standaardvorm wordt herhaald.</p>`:`
       <label class="l3-name">Naam<input data-rack-field="name" maxlength="64" value="${esc(r.name)}" ${!admin()||state.busy?'disabled':''}></label>
       <div class="l3-fields">${field('Breedte','width',g.width,10,2000)}${field('Hoogte','height',g.height,10,1000)}${field('Diepte','depth',g.depth,10,500)}</div>
       <details class="l3-section"><summary>Positie in het magazijn</summary><div class="l3-fields">${field('Links / rechts','x',g.x,-5000,5000)}${field('Voor / achter','z',g.z,-5000,5000)}${field('Draaien','angle',g.angle,0,359,'rack','1')}</div><p class="l3-muted">Positie van het midden van de stelling, gemeten vanaf het midden van de ruimte.</p></details>
       <details class="l3-section"><summary>Rijen en productkolommen</summary><label>Aantal rijen<input data-rack-field="rows" type="number" min="1" max="50" step="1" required value="${r.rows}" ${!admin()||state.busy?'disabled':''}></label><div class="l3-row-fields">${r.rowColumns.map((c,i)=>`<label>Rij Y${i+1}<input aria-label="Kolommen rij ${i+1}" data-row="${i}" type="number" min="1" max="50" required step="1" value="${c}" ${!admin()||state.busy?'disabled':''}></label>`).join('')}</div><p class="l3-muted">Rijen zijn even hoog. Kolommen verdelen de beschikbare breedte per rij.</p></details>`}
       <section class="l3-section l3-cell-section"><h3>Producten in een vak</h3><div class="l3-cell-select"><label>Rij (Y)<select data-select="y" ${state.busy?'disabled':''}><option value="">Kies rij</option>${Array.from({length:r.rows},(_,i)=>`<option value="${i+1}" ${state.y===i+1?'selected':''}>Y${i+1}</option>`).join('')}</select></label><label>Kolom (X)<select data-select="x" ${!state.y||state.busy?'disabled':''}><option value="">Kies vak</option>${Array.from({length:state.y?r.rowColumns[state.y-1]||0:0},(_,i)=>`<option value="${i+1}" ${state.x===i+1?'selected':''}>X${i+1}</option>`).join('')}</select></label></div>
-      ${state.x&&state.y?`<p class="l3-cell-address">${esc(r.name)} / Y${state.y} / X${state.x}</p>${warnings()}<div class="l3-assigned">${group().map(item=>`<div class="l3-assigned-row ${String(item.id)===String(state.productId)?'is-selected':''}"><button type="button" data-l3="product" data-id="${item.id}"><strong>${esc(item.jb_code)}</strong><span>${esc(item.description)}</span><small>${Object.values({w:state.data.geometry.products[item.id].width,h:state.data.geometry.products[item.id].height,d:state.data.geometry.products[item.id].depth}).join(' × ')} cm</small></button>${admin()?`<button type="button" data-l3="unassign" data-id="${item.id}" aria-label="${esc(item.jb_code)} uit dit vak halen" ${state.busy?'disabled':''}>×</button>`:''}</div>`).join('')||'<p class="l3-muted">Dit vak is nog leeg.</p>'}</div>${admin()?`<label class="l3-search-label">Product toevoegen<input type="search" class="l3-search" placeholder="Naam of JB-code" value="${esc(state.query)}" ${state.busy?'disabled':''}></label><div class="l3-search-results">${choices()}</div>`:''}`:`<p class="l3-muted">${state.plan?'Kies hierboven een rij en kolom om producten in te delen.':'Klik op een vak in het model of kies hierboven een rij en kolom.'}</p>`}</section>
+      ${state.x&&state.y?`<p class="l3-cell-address">${esc(r.name)} / Y${state.y} / X${state.x}</p><div class="l3-fit-warning">${warnings()}</div><div class="l3-assigned">${group().map(item=>`<div class="l3-assigned-row ${String(item.id)===String(state.productId)?'is-selected':''}"><button type="button" data-l3="product" data-id="${item.id}"><strong>${esc(item.jb_code)}</strong><span>${esc(item.description)}</span><small>${Object.values({w:state.data.geometry.products[item.id].width,h:state.data.geometry.products[item.id].height,d:state.data.geometry.products[item.id].depth}).join(' × ')} cm</small></button>${admin()?`<button type="button" data-l3="unassign" data-id="${item.id}" aria-label="${esc(item.jb_code)} uit dit vak halen" ${state.busy?'disabled':''}>×</button>`:''}</div>`).join('')||'<p class="l3-muted">Dit vak is nog leeg.</p>'}</div>${admin()?`<label class="l3-search-label">Product toevoegen<input type="search" class="l3-search" placeholder="Naam of JB-code" value="${esc(state.query)}" ${state.busy?'disabled':''}></label><div class="l3-search-results">${choices()}</div>`:''}`:`<p class="l3-muted">${state.plan?'Kies hierboven een rij en kolom om producten in te delen.':'Klik op een vak in het model of kies hierboven een rij en kolom.'}</p>`}</section>
       ${admin()&&!p?`<button type="button" data-l3="remove" class="l3-remove" ${state.busy?'disabled':''}>Stelling verwijderen</button>`:''}`;
     }
     function render(){renderRacks();inspector();status();draw();}
@@ -219,7 +221,7 @@
       if(state.busy)return;const different=state.rackId!==hit.rackId;
       state.rackId=hit.rackId;state.x=hit.x||null;state.y=hit.y||null;state.productId=hit.productId||null;state.query='';render();if(different&&(!state.overview||state.mode==='flat'))view?.fit();
     }
-    function dirty(){state.dirty=true;state.message='';status();draw();}
+    function dirty(){const fit=$('.l3-fit-warning');if(fit)fit.innerHTML=warnings();const pg=state.data?.geometry.products[state.productId],cap=$('.l3-capacity');if(pg&&cap)cap.textContent=(pg.across??1)*(pg.behind??1)+' plaatsen · '+(pg.across??1)+' naast × '+(pg.behind??1)+' achter';state.dirty=true;state.message='';status();draw();}
     root.addEventListener('input',e=>{
       if(e.target.matches('.l3-search')){state.query=e.target.value;$('.l3-search-results').innerHTML=choices();return;}
       if(!admin()||state.busy||!rack())return;
