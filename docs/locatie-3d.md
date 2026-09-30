@@ -1,4 +1,8 @@
-# Locatie in 3D (Windows 1.0.22)
+# Locatie in 3D (Windows 1.0.23)
+
+Vanaf 1.0.23 kan de beheerder per opgeslagen artikel via **Artikel bewerken > Locatie > 3D-model en maten instellen** een eigen statisch **GLB 2.0** uploaden (maximaal 20 MB, afbeeldingen ingesloten, zonder Draco/Meshopt/KTX2). Breedte, hoogte en diepte zijn buitenmaten in centimeters. De breedte is begrensd door het huidige vak. Maten kunnen ook zonder nieuw bestand worden aangepast. Bestanden staan in de private BinnenApp Storage-bucket `product-models`; metadata staat in `private.product_models`, afmetingen in de bestaande gedeelde `private.location_scene`. De viewer schaalt het model naar deze maten; bij een laadfout blijft de standaardvorm zichtbaar met een melding. Sluit en heropen Locatie of klik Vernieuwen om wijzigingen op te halen. Bestaande lokale modellen moeten eerst via **Model opslaan** gedeeld worden.
+
+Migratie `20260930160000_productmodellen.sql` is op 30 september 2026 uitgevoerd op `guurncfxhcxwvgnzoeyp`. De rollbacktest `controle-productmodellen-opslag.sql` controleert koppeling, maten, herladen, revisies, rechten en voorraadbehoud. De lokale tests `controle-model-upload.cjs` en `controle-model-upload-ui.cjs` controleren bestandvalidatie, uploads, exacte modelschaal, formuliergrenzen en heropenen.
 
 In 1.0.22 is het in de database opgeslagen beheerdersmodel leidend op alle pc's. Oude lokale bestanden worden behouden, maar overschrijven de gedeelde weergave niet. Alleen een actieve beheerder kan lokale maten als eerste model importeren, zolang de database nog geen model bevat; daarna lezen beheerders en medewerkers dezelfde gedeelde maten. De bestaande revisiecontrole blokkeert een verouderde eerste import als intussen een model is opgeslagen. Medewerkers zien vóór de eerste opslag een wachtmelding in plaats van een voorbeeldmodel. Bij openen of Vernieuwen wordt het actuele model opgehaald; beheerders publiceren wijzigingen met **Model opslaan**.
 

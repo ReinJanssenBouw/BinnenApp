@@ -47,7 +47,7 @@ export function createLocationView(host, onSelect) {
   for(const label of [widthLabel,depthLabel]){label.material.depthTest=false;label.material.depthWrite=false;label.renderOrder=10;}
   let targets=[],snapshot,selected,overview=false,down=null,disposed=false;
   const ray=new T.Raycaster();
-  const productModels=createProductModels(render);
+  const productModels=createProductModels(render,product=>host.dispatchEvent(new CustomEvent('view-error',{detail:'Het 3D-model van '+(product.jb_code||product.description)+' kon niet worden geladen. De standaardvorm wordt getoond.'})));
   function render(){if(!disposed&&host.clientWidth&&host.clientHeight){for(const panel of wallPanels){
     const {nx,nz,edge}=panel.userData.wall;
     const near=(camera.position.x-panel.position.x)*nx+(camera.position.z-panel.position.z)*nz>0.01;
@@ -55,7 +55,7 @@ export function createLocationView(host, onSelect) {
   }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);perspectiveCamera.aspect=w/h;perspectiveCamera.updateProjectionMatrix();frontCamera.top=frontHeight/2;frontCamera.bottom=-frontHeight/2;frontCamera.left=-frontHeight*w/h/2;frontCamera.right=frontHeight*w/h/2;frontCamera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
-  function clear(){productModels.reset();content.traverse(o=>{o.geometry?.dispose();if(o.material){if(!o.material.map?.userData.sharedProductPhoto)o.material.map?.dispose();o.material.dispose();}});content.clear();targets=[];}
+  function clear(){productModels.reset();content.traverse(o=>{o.geometry?.dispose();for(const material of [].concat(o.material||[])){for(const v of Object.values(material))if(v?.isTexture&&!v.userData.sharedProductPhoto)v.dispose();material.dispose();}});content.clear();targets=[];}
   function box(parent,w,h,d,x,y,z,color,hit){
     const mesh=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.72,metalness:.12}));mesh.position.set(x,y,z);parent.add(mesh);
     if(hit){mesh.userData.hit=hit;targets.push(mesh);}return mesh;

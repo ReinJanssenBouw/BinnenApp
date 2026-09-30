@@ -1,4 +1,5 @@
-﻿const fs = require('fs');
+﻿const {createProductModelStore}=require('./product-model-store');
+const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { createLocationSceneStore } = require('./location-scene-store');
@@ -237,6 +238,11 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
   });
 
   const locationScene = createLocationSceneStore({supabase,directory:app.getPath('userData'),projectUrl:SUPABASE_URL});
+  const productModels=createProductModelStore({supabase,projectUrl:SUPABASE_URL});
+  async function withModels(data){
+    const models=await productModels.list();
+    return {...data,products:data.products.map(p=>({...p,...models.get(String(p.id))}))};
+  }
 
   // ─── Prefetch cache ──────────────────────────────────────────────────
   const _cache = {};
@@ -587,9 +593,9 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
   ipcMain.handle('supabase-request', async (_event, key, payload = {}) => {
     switch (key) {
       case 'getLocationScene':
-        return locationScene.load();
+        return withModels(await locationScene.load());
       case 'saveLocationScene':
-        return locationScene.save(payload);
+        return withModels(await locationScene.save(payload));
       case 'getLocationLayout':
         return check(await supabase.rpc('binnenapp_get_location_layout'));
       case 'assignProductLocation':
@@ -599,6 +605,12 @@ function registerSupabaseHandlers({ app, safeStorage, ipcMain, onCartRealtime })
       case 'getProductsAdmin': {
         const producten = check(await supabase.rpc('binnenapp_admin_products')) || [];
         return { items: producten.map(productToLegacyRow) };
+      }
+      case 'getProductModel':
+      case 'saveProductModel': {
+        const scene=await locationScene.load();
+        if(scene.storage!=='cloud') throw new Error('Sla eerst je lokale locatiemodel op via Locatie > Model opslaan.');
+        return key==='getProductModel'?productModels.get(payload.productId):productModels.save(payload);
       }
       case 'saveProduct': {
         const artikel = valideerArtikelPayload(payload);

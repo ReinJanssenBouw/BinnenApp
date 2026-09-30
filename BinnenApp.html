@@ -1352,6 +1352,8 @@ body.product-admin .product-admin-btn{display:inline-flex;}
 .sidebar-nav>.nav-item,.sidebar-top,.sidebar-user-section,.sidebar-bottom{flex-shrink:0;}
 
 </style>
+<link rel="stylesheet" href="product-modelbeheer.css">
+<script src="product-modelbeheer.js"></script>
 </head>
 <body>
 
@@ -1452,7 +1454,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
         <p id="dateBadge">vrijdag 22 mei 2026</p>
       </div>
       <div class="topbar-right">
-      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.22</span>
+      <span id="appVersion" style="font-size:13px;color:#94a3b8;font-weight:500;">v1.0.23</span>
       </div>
     </div>
 
@@ -1778,6 +1780,7 @@ body.product-admin .product-admin-btn{display:inline-flex;}
           </div>
         </section>
         <div class="artikel-tabpaneel" id="artikelPaneelLocatie" role="tabpanel" aria-labelledby="artikelTabLocatie" hidden>
+        <section class="artikel-sectie"><div class="artikel-sectie-kop"><h5 class="artikel-sectie-titel">3D-model en afmetingen</h5><p>Upload een eigen productmodel en stel de breedte, hoogte en diepte in.</p></div><button type="button" class="artikel-secundair" onclick="openProductModelBeheer()">3D-model en maten instellen</button></section>
         <section class="artikel-sectie">
           <div class="artikel-sectie-kop"><h5 class="artikel-sectie-titel">Vindbaar in het magazijn</h5><p>Vul de locatie in zoals die op de stelling staat. Deze velden zijn optioneel.</p></div>
           <div class="artikel-velden">
@@ -2317,6 +2320,12 @@ let sidebarDragState = null;
 // ------------------------------------------------------------
 //  NAVIGATION
 // ------------------------------------------------------------
+
+function openProductModelBeheer() {
+  if(!isArtikelbeheerder()) return;
+  if(!gekozenArtikelId){zetArtikelMelding('Sla het artikel eerst op.',false);return;}
+  window.BinnenProductModel.open(gekozenArtikelId,document.getElementById('artikelFormTitel').textContent);
+}
 
 function openLocatieInstellingen() {
   window.BinnenLocaties3D.mount(document.getElementById('page-locatie'), {
@@ -7024,6 +7033,7 @@ function sluitArtikelbeheerDirect() {
 }
 
 document.addEventListener('keydown', event => {
+  if(document.querySelector('.pm-dialog[open]')) return;
   const modal = document.getElementById('artikelbeheerModal');
   if(!modal?.classList.contains('open')) return;
   // Paginasneltoetsen mogen nooit het scherm achter het formulier bedienen.
@@ -7645,7 +7655,7 @@ function updateSpIndicator() {
 function syncAppVersionDisplay() {
   const el = document.getElementById('appVersion');
   if(!el) return;
-  const fallbackVersion = '1.0.22';
+  const fallbackVersion = '1.0.23';
   el.textContent = 'v' + fallbackVersion;
   if(window.binnenApp?.getVersion) {
     window.binnenApp.getVersion().then(version => {

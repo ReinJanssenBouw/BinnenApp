@@ -1,4 +1,5 @@
 import * as T from './vendor/three/three.module.min.js';
+import {GLTFLoader} from './vendor/three/GLTFLoader.js';
 
 // Herkenbare, lichte benaderingen; de ingestelde maten blijven leidend.
 export function productShape(product){
@@ -14,8 +15,28 @@ export function productShape(product){
   return 'box';
 }
 
-export function createProductModels(redraw){
+export function createProductModels(redraw,onModelError=()=>{}){
   const cache=new Map(),loader=new T.TextureLoader();let generation=0,disposed=false;
+  const models=new Map();
+  function custom(url,apply){
+    const current=generation;
+    let promise=models.get(url);
+    if(!promise){
+      const manager=new T.LoadingManager();manager.setURLModifier(value=>{if(value===url||/^(blob:|data:)/.test(value))return value;throw Error('Extern modelbestand geweigerd');});
+      promise=new GLTFLoader(manager).loadAsync(url).then(gltf=>{
+        const source=gltf.scene,bounds=new T.Box3().setFromObject(source),size=bounds.getSize(new T.Vector3());
+        if(![size.x,size.y,size.z].every(n=>Number.isFinite(n)&&n>0)){disposeSource(source);throw Error('Model heeft geen geldige buitenmaten');}
+        source.traverse(o=>{for(const m of [].concat(o.material||[]))for(const v of Object.values(m))if(v?.isTexture)v.userData.sharedProductPhoto=true;});
+        if(disposed){disposeSource(source);throw Error('Weergave gesloten');}return {source,bounds,size};
+      });models.set(url,promise);
+    }
+    promise.then(({source,bounds,size})=>{
+      if(disposed||generation!==current)return;
+      const copy=source.clone(true);copy.traverse(o=>{if(o.geometry)o.geometry=o.geometry.clone();if(o.material)o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();});
+      const center=bounds.getCenter(new T.Vector3()),unit=new T.Group();unit.scale.set(1/size.x,1/size.y,1/size.z);copy.position.sub(center);unit.add(copy);apply(unit);redraw();
+    }).catch(()=>{if(!disposed&&generation===current){apply(null);redraw();}});
+  }
+  function disposeSource(source){const textures=new Set();source.traverse(o=>{o.geometry?.dispose();for(const m of [].concat(o.material||[])){for(const v of Object.values(m))if(v?.isTexture)textures.add(v);m.dispose();}});for(const t of textures)t.dispose();}
   function photo(url,apply){
     if(!url)return;
     let entry=cache.get(url);
@@ -90,13 +111,17 @@ export function createProductModels(redraw){
       // Fit in world space as well, so changing box dimensions never distorts the photo.
       const maxW=labelWidth*.92*dimensions.width,maxH=labelHeight*.78*dimensions.height;
       const w=Math.min(maxW,maxH*ratio),h=w/ratio;
-      image.scale.set(w/dimensions.width,h/dimensions.height,1);imageMaterial.map=texture;imageMaterial.needsUpdate=true;image.visible=true;
+      image.scale.set(w/dimensions.width,h/dimensions.height,1);imageMaterial.map=texture;imageMaterial.needsUpdate=true;image.visible=root.userData.modelStatus!=='ready';
     });
     if(selected||overflow){
       const outline=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(1.015,1.015,1.025)),new T.LineBasicMaterial({color:selected?0x3675e2:0xc86955}));root.add(outline);
     }
     root.scale.set(dimensions.width,dimensions.height,dimensions.depth);
+    if(product.product_model_url){
+      const fallback=[...root.children];root.userData.modelStatus='loading';
+      custom(product.product_model_url,model=>{root.userData.modelStatus=model?'ready':'error';if(model){for(const child of fallback)if(!child.isLineSegments)child.visible=false;root.add(model);root.userData.productShape='uploaded';}else onModelError(product);});
+    }
     return {root,labelY:labelY-labelHeight*.40,kind};
   }
-  return {create,reset(){generation++;for(const entry of cache.values())entry.listeners=[];},dispose(){disposed=true;for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();}};
+  return {create,reset(){generation++;for(const entry of cache.values())entry.listeners=[];},dispose(){disposed=true;for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();for(const p of models.values())p.then(({source})=>disposeSource(source)).catch(()=>{});models.clear();}};
 }
