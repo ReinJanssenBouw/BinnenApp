@@ -39,9 +39,15 @@ function createLocationSceneStore({supabase, directory, projectUrl}) {
     const response = await supabase.rpc('binnenapp_get_location_scene');
     if (!missing(response)) {
       const cloud = checked(response), local = read();
-      // Na activering van de cloudopslag blijven eerder lokaal ingevoerde
-      // maten zichtbaar. Model opslaan synchroniseert ze expliciet.
-      return {...cloud,geometry:local.pending?local.geometry:cloud.geometry,storage:local.pending?'pending':'cloud',localRevision:local.revision};
+      // Het opgeslagen beheerdersmodel is leidend, ook op een pc met oude
+      // lokale wijzigingen. Alleen de eerste import mag uit lokale maten komen.
+      const published=cloud.sceneRevision>0||Object.keys(cloud.geometry?.racks||{}).length>0||Object.keys(cloud.geometry?.products||{}).length>0;
+      let importLocal=false;
+      if(!published&&local.pending){
+        const membership=checked(await supabase.rpc('binnenapp_membership_status'));
+        importLocal=membership?.active===true&&membership.role==='admin';
+      }
+      return {...cloud,geometry:importLocal?local.geometry:cloud.geometry,storage:importLocal?'pending':'cloud',localRevision:local.revision};
     }
     const layout = checked(await supabase.rpc('binnenapp_get_location_layout'));
     const local = read();

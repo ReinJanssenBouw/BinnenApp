@@ -11,6 +11,7 @@ let scene={geometry:{version:1,racks:{},products:{}},sceneRevision:0};
 const copy=v=>JSON.parse(JSON.stringify(v));
 const supabase={from:table=>{assert.equal(table,'products');return {select:async fields=>{assert.equal(fields,'id,product_image_url');return {data:[{id:1,product_image_url:'https://binnenapp-mobiel.vercel.app/product-images/transparant/129122.png'}]};}};},rpc:async(name,args)=>{
  if(networkError)return {error:{code:'NETWORK',message:'Geen verbinding'}};
+ if(name==='binnenapp_membership_status')return {data:{active:true,role:admin?'admin':'member'}};
  if(name.includes('_scene')&&!cloud)return {error:{code:'PGRST202',message:'Missing RPC'}};
  if(name.includes('save_')&&!admin)return {error:{code:'42501',message:'Geen beheerder'}};
  if(name.includes('save_')&&args.p_revision!==layout.revision)return {error:{code:'40001',message:'Indeling gewijzigd'}};
@@ -43,9 +44,24 @@ const payload=d=>({racks:[rack],geometry,revision:d.revision,sceneRevision:d.sce
  networkError=true;await assert.rejects(store.load(),/Geen verbinding/);await assert.rejects(store.save(payload(d)),/Geen verbinding/);networkError=false;
  assert.deepEqual((await store.load()).geometry,geometry);
  // Enabling the RPC later preserves local work until the user saves it.
- cloud=true;d=await store.load();assert.equal(d.storage,'pending');assert.deepEqual(d.geometry,geometry);
+ cloud=true;admin=false;d=await store.load();assert.equal(d.storage,'cloud');assert.deepEqual(d.geometry,scene.geometry,'Members cannot promote local dimensions');
+ admin=true;d=await store.load();assert.equal(d.storage,'pending');assert.deepEqual(d.geometry,geometry);
+ const firstImport=payload(d);
  d=await store.save(payload(d));assert.equal(d.storage,'cloud');assert.deepEqual(scene.geometry,geometry);
  d=await create().load();assert.equal(d.storage,'cloud');assert.deepEqual(d.geometry,geometry);assert(d.products[0].product_image_url.endsWith('/129122.png'));
+ // Another PC still has pending local dimensions from before activation.
+ const otherDirectory=fs.mkdtempSync(path.join(base,'scene-other-pc-'));
+ const oldGeometry=copy(geometry);oldGeometry.racks[rack.id].width=110;
+ fs.writeFileSync(path.join(otherDirectory,'binnenapp-location-scene-v1.json'),JSON.stringify({revision:1,pending:true,geometry:oldGeometry}));
+ const other=createLocationSceneStore({supabase,directory:otherDirectory,projectUrl});
+ for(const isAdmin of [false,true]){
+  admin=isAdmin;const shared=await other.load();assert.equal(shared.storage,'cloud');assert.deepEqual(shared.geometry,geometry,'Published admin model wins over pending local data on every PC');
+ }
+ await assert.rejects(other.save(firstImport),/Indeling gewijzigd|Model gewijzigd/,'An old first-import snapshot cannot overwrite a published model');
+ assert.equal(JSON.parse(fs.readFileSync(path.join(otherDirectory,'binnenapp-location-scene-v1.json'),'utf8')).geometry.racks[rack.id].width,110,'Preserve the old local file');
+ const edit=payload(await store.load());edit.geometry=copy(geometry);edit.geometry.racks[rack.id].width=260;
+ await store.save(edit);admin=false;assert.equal((await other.load()).geometry.racks[rack.id].width,260,'Members receive subsequent admin changes');
+ await assert.rejects(other.save(payload(await other.load())),/Geen beheerder/);admin=true;
  assert.deepEqual(layout.products,[{id:1,stock:8,min_stock:6}]);
- console.log('GESLAAGD: lokale persistentie na herstart, revisies, adminrechten, maatvalidatie, netwerkfouten en latere cloudsynchronisatie.');
+ console.log('GESLAAGD: lokale persistentie, eerste import alleen door beheerder, gedeeld beheerdersmodel op andere pc, oude lokale maten genegeerd, revisies, rechten, maatvalidatie en netwerkfouten.');
 })().catch(e=>{console.error(e);process.exitCode=1});

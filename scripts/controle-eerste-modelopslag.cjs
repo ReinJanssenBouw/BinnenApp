@@ -16,10 +16,12 @@ app.whenReady().then(async()=>{
  const result=await w.webContents.executeJavaScript(`(async()=>{
   const q=s=>document.querySelector(s),copy=x=>JSON.parse(JSON.stringify(x));
   const wait=()=>new Promise(r=>setTimeout(r,150)),check=(v,msg)=>{if(!v)throw Error(msg)};
-  let admin=true,saves=0;
+  let admin=false,saves=0;
   let db={racks:[{id:'rack-1',name:'Stelling 1',rows:6,columns:3,rowColumns:[3,3,3,3,14,3]}],products:[{id:1,jb_code:'JB0001',description:'Test schroeven',rack:'Stelling 1',x_axis:'1',y_axis:'5',stock:8,min_stock:6}],geometry:{version:1,racks:{},products:{}},revision:9,sceneRevision:0,storage:'cloud'};
   const api={isAdmin:()=>admin,isActive:()=>true,loadScene:async()=>copy(db),saveScene:async p=>{saves++;db={...db,...copy(p),revision:db.revision+1,sceneRevision:db.sceneRevision+1,storage:'cloud'};return copy(db)}};
   window.confirm=()=>true;BinnenLocaties3D.mount(q('#test'),api);await wait();
+  check(q('.l3-work').hidden&&q('.l3-status').textContent.includes('beheerder heeft nog geen'),'Members wait for a published admin model instead of seeing defaults');
+  admin=true;q('[data-l3="reload"]').click();await wait();check(!q('.l3-work').hidden,'Admin can prepare first shared model');
   check(!q('[data-l3="save"]').disabled,'First cloud save must work without changing a field');
   check(q('.l3-status').textContent.includes('nog niet opgeslagen'),'Explain missing dimensions');
   q('[data-l3="save"]').click();await wait();
@@ -37,7 +39,7 @@ app.whenReady().then(async()=>{
   check(q('[data-l3="save"]').disabled&&q('.l3-status').textContent.includes('te breed'),'Existing invalid width remains blocked with explanation');
   check(db.geometry.products[1].width===30,'Do not silently alter explicit dimensions');
   db.geometry.products={};q('[data-l3="reload"]').click();await wait();check(!q('[data-l3="save"]').disabled,'New product dimensions can be saved into existing model');
-  admin=false;q('[data-l3="reload"]').click();await wait();check(q('[data-l3="save"]').hidden&&q('[data-l3="save"]').disabled,'Members cannot save');
+  admin=false;q('[data-l3="reload"]').click();await wait();check(q('[data-l3="save"]').hidden&&q('[data-l3="save"]').disabled,'Members cannot save');check(!q('.l3-work').hidden,'Members see published model');
   return {saves,stock:db.products[0].stock};
  })()`);
  assert.deepEqual(errors,[]);assert.equal(result.saves,2);assert.equal(result.stock,8);

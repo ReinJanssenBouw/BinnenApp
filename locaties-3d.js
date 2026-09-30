@@ -14,6 +14,7 @@
     el.innerHTML=`<section class="l3-root"><header class="l3-header"><div><span class="l3-eyebrow">LOCATIE · MAGAZIJN</span><h1>Je magazijn in 3D</h1></div><div class="l3-head-actions"><button type="button" data-l3="mode">Vakkenlijst</button><button type="button" data-l3="reload">Vernieuwen</button><button type="button" data-l3="save" class="l3-primary" disabled>Model opslaan</button></div></header><p class="l3-status" role="status" aria-live="polite"></p><p class="l3-storage" hidden></p><div class="l3-work"><aside class="l3-racks" aria-label="Stellingen"></aside><div class="l3-stage"><div class="l3-views" aria-label="Camerastand"><button type="button" data-l3="view" data-view="perspective" aria-pressed="true">3D</button><button type="button" data-l3="plan" aria-pressed="false">2D-plattegrond</button><button type="button" data-l3="view" data-view="front">Voorkant</button><button type="button" data-l3="view" data-view="top">Bovenkant</button><button type="button" data-l3="overview">Stelling bekijken</button><button type="button" data-l3="plan-zoom" data-factor="1.25" aria-label="Plattegrond inzoomen" hidden>＋</button><button type="button" data-l3="plan-zoom" data-factor="0.8" aria-label="Plattegrond uitzoomen" hidden>−</button></div><div class="l3-canvas"></div><div class="l3-plan" hidden></div><div class="l3-stage-caption"><span>Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven</span><button type="button" data-l3="fit">Alles in beeld</button></div><div class="l3-scale">Ruimte 6630 × 4820 mm · Raster 500 mm</div></div><aside class="l3-inspector" aria-label="Afmetingen en producten"></aside></div></section>`;
     const root=el.querySelector('.l3-root'),$=s=>root.querySelector(s);
     const admin=()=>api.isAdmin();
+    const awaitingModel=()=>!admin()&&state.data?.storage==='cloud'&&state.data.sceneRevision===0;
     const rack=()=>state.data?.racks.find(r=>r.id===state.rackId);
     const product=()=>state.data?.products.find(p=>String(p.id)===String(state.productId));
     const group=()=>{const r=rack();return r?state.data.products.filter(p=>p.rack===r.name&&Number(p.x_axis)===state.x&&Number(p.y_axis)===state.y):[];};
@@ -55,7 +56,7 @@
       const error=state.data?validation():'';
       $('.l3-storage').hidden=!['local','pending'].includes(state.data?.storage);
       $('.l3-storage').textContent=state.data?.storage==='pending'?'Je lokale maten staan klaar om te delen. Klik op Model opslaan.':'3D-maten worden op deze pc bewaard. Stellingen en productlocaties worden met de andere apparaten gedeeld.';
-      $('.l3-status').textContent=error||(!state.plan&&viewError)||state.message||(state.dirty?'Niet opgeslagen · sla je model op om deze maten te bewaren.':state.needsSave?'Deze maten zijn nog niet opgeslagen. Controleer de startmaten en klik op Model opslaan.':'Alle modelmaten zijn opgeslagen.');
+      $('.l3-status').textContent=awaitingModel()?'De beheerder heeft nog geen locatiemodel opgeslagen. Klik op Vernieuwen zodra dit is gedaan.':error||(!state.plan&&viewError)||state.message||(state.dirty?'Niet opgeslagen · sla je model op om deze maten te bewaren.':state.needsSave?'Deze maten zijn nog niet opgeslagen. Controleer de startmaten en klik op Model opslaan.':state.data?.storage==='cloud'?'Gedeeld locatiemodel van de beheerder.':'Alle modelmaten zijn opgeslagen.');
       $('.l3-status').classList.toggle('is-error',!!error);
       $('[data-l3="save"]').disabled=!admin()||state.busy||!state.data||(!state.dirty&&!state.needsSave)||!!error;
       $('[data-l3="save"]').title=error||(!state.dirty&&!state.needsSave?'Alle modelmaten zijn al opgeslagen.':'Huidige modelmaten opslaan');
@@ -83,6 +84,7 @@
       $('.l3-plan').innerHTML=`<svg viewBox="${(minX+maxX-width)/2} ${(minY+maxY-height)/2} ${width} ${height}" preserveAspectRatio="xMidYMid meet" aria-label="Plattegrond van de ruimte, 6630 bij 4820 millimeter"><defs><pattern id="${planGridId}" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e1e8f0" stroke-width="1"/></pattern></defs><rect x="-331.5" y="-241" width="663" height="482" fill="white"/><rect x="-331.5" y="-241" width="663" height="482" fill="url(#${planGridId})"/><rect class="l3-plan-walls" x="-336.5" y="-246" width="673" height="492"/><g class="l3-plan-dimensions"><path d="M -331.5 -265 V -290 M 331.5 -265 V -290 M -331.5 -278 H 331.5 M -353.5 -241 H -378.5 M -353.5 241 H -378.5 M -366.5 -241 V 241"/><text x="0" y="-290" text-anchor="middle">6630 mm</text><text transform="translate(-382 0) rotate(-90)" text-anchor="middle">4820 mm</text></g>${items}<g class="l3-plan-origin"><path d="M -6 0 H 6 M 0 -6 V 6"/><title>Midden van de ruimte: X 0, Z 0</title></g></svg>`;
     }
     function showView(){
+      $('.l3-work').hidden=awaitingModel();
       root.classList.toggle('l3-can-drag',admin());
       $('.l3-header h1').textContent=state.mode==='flat'?'Vakkenlijst · vooraanzicht':state.plan?'Plattegrond van je magazijn':'Je magazijn in 3D';
       if($('.l3-room-settings'))$('.l3-room-settings').hidden=state.plan||state.mode==='flat';
@@ -97,7 +99,7 @@
       $('.l3-scale').textContent=state.mode==='flat'?'Recht vooraanzicht · zonder perspectief':'Ruimte 6630 × 4820 mm · Raster 500 mm';
       $('.l3-stage-caption span').textContent=state.mode==='flat'?'Klik: vak of product · Scroll: zoomen · Sleep: verschuiven':state.plan?(admin()?'Sleep: verplaatsen · Magneet bij muren · Esc: annuleren. Blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
     }
-    function draw(){showView();const error=validation();if(state.data&&(!error||error===widthError())){if(state.plan)planView();else view?.update(state.data,{...state,frontView:state.mode==='flat'},state.overview);}}
+    function draw(){showView();if(awaitingModel())return;const error=validation();if(state.data&&(!error||error===widthError())){if(state.plan)planView();else view?.update(state.data,{...state,frontView:state.mode==='flat'},state.overview);}}
     root.addEventListener('keydown',e=>{if(!planDrag&&(e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
     const planHost=$('.l3-plan');
     function snapToWalls(g,drag){
