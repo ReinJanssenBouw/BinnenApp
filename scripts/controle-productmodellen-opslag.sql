@@ -7,7 +7,7 @@ begin
  perform set_config('request.jwt.claim.sub',a::text,true);
  select id into p from public.products order by id limit 1;
  select jsonb_agg(to_jsonb(t) order by id) into before_products from public.products t;
- d:=public.binnenapp_get_product_model(p);dims:=jsonb_build_object('width',least(1,(d->>'widthLimit')::numeric),'height',2,'depth',3);
+ d:=public.binnenapp_get_product_model(p);dims:=jsonb_build_object('width',least(1,(d->>'widthLimit')::numeric),'height',2,'depth',3,'across',1,'behind',1);
  model_path:=p::text||'/11111111-1111-4111-8111-111111111111.glb';
  insert into storage.objects(bucket_id,name,metadata) values('product-models',model_path,'{"mimetype":"model/gltf-binary","size":100}');
  d:=public.binnenapp_save_product_model(p,model_path,'test.glb',dims,(d->>'sceneRevision')::integer);
