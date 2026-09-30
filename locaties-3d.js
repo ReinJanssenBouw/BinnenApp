@@ -84,7 +84,7 @@
       $('.l3-canvas').hidden=state.plan;$('.l3-plan').hidden=!state.plan;
       $('[data-l3="plan"]').setAttribute('aria-pressed',String(state.plan));
       $('[data-view="perspective"]').setAttribute('aria-pressed',String(!state.plan&&state.mode==='3d'));
-      for(const e of root.querySelectorAll('[data-view="front"],[data-view="top"],[data-l3="overview"]'))e.hidden=state.plan||state.mode==='flat';
+      for(const e of root.querySelectorAll('button[data-view="front"],button[data-view="top"],button[data-l3="overview"]'))e.hidden=state.plan||state.mode==='flat';
       for(const e of root.querySelectorAll('[data-l3="plan-zoom"]'))e.hidden=!state.plan;
       $('[data-l3="mode"]').textContent=state.mode==='flat'?'Terug naar 3D':'Vakkenlijst';
       $('[data-l3="mode"]').setAttribute('aria-pressed',String(state.mode==='flat'));

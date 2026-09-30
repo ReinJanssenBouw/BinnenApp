@@ -1,4 +1,6 @@
-# Locatie in 3D (Windows 1.0.19)
+# Locatie in 3D (Windows 1.0.20)
+
+In 1.0.20 blijft het tekenvlak zichtbaar bij het wisselen van stelling en het selecteren van vakken in het vooraanzicht. De cameraknoppen worden afzonderlijk verborgen; hun selector mag niet het tekenvlak met dezelfde `data-view` raken. `scripts/controle-vooraanzicht-wisselen.cjs` controleert vier stellingen met verschillende draaihoeken via echte muisklikken, inclusief vakselectie in het getoonde model.
 
 De ruimte heeft een vaste vloermaat van **6630 × 4820 mm**. Het model opent met de hele ruimte; met **Stelling bekijken** kun je een stelling van dichtbij bewerken. Stellingposities worden in centimeters gemeten vanaf het midden van de ruimte. Een waarschuwing verschijnt als een stelling, inclusief de ingestelde draaihoek, over de vloergrens steekt. De vier muren zijn voorlopig **2600 mm** hoog. Via **Hoogte muren** links kun je de hoogte aanpassen; deze instelling blijft op dezelfde pc bewaard. De muren aan de kijkzijde worden automatisch transparant, zodat de stellingen bereikbaar blijven.
 
