@@ -1,4 +1,8 @@
-# Locatie in 3D (Windows 1.0.25)
+# Locatie in 3D (Windows 1.0.26)
+
+In 1.0.26 worden zware geüploade GLB-modellen eenmalig in een Web Worker vereenvoudigd met meshoptimizer 1.3.0. Richtbudget: 3000 driehoeken per model, met begrensde geometriefout en behoud van normalen, UV-etiketten en materiaalgroepen. De oorspronkelijke buitenmaten bepalen nog steeds de schaal; bronbestanden, database en productinstellingen veranderen niet. Bij een niet-ondersteunde vereenvoudiging blijft het origineel beschikbaar. De worker wordt bij sluiten opgeruimd.
+
+`controle-upload-performance.cjs` test honderd exemplaren van een lokale testkopie van een echte upload (standaard `dist/kelfort-hybrikit.glb`, of `--model=pad.glb`). De Hybrikit daalt van 43.008 naar 2.998 driehoeken per exemplaar. De private testbestanden worden niet meegeleverd of gepubliceerd. Test ook met `--packaged`, zodat de worker en WASM in de installer worden gecontroleerd.
 
 In 1.0.25 tekent de viewer herhaalde productonderdelen en etiketten met GPU-instancing. Er wordt per product slechts één prototype met foto of GLB geladen. Frames worden gebundeld via requestAnimationFrame; selecteren behoudt de scène en wijzigt alleen de markering. Productselectie gebruikt een eenvoudige klikvorm rond de capaciteit. Maten, aantallen, foto's en opslag blijven behouden. Model- en instancingbuffers worden opgeruimd bij herbouw of sluiten.
 

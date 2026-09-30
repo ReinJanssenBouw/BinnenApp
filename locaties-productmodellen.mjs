@@ -1,5 +1,6 @@
 import * as T from './vendor/three/three.module.min.js';
 import {GLTFLoader} from './vendor/three/GLTFLoader.js';
+import {createModelOptimizer} from './product-model-optimize.mjs';
 
 // Herkenbare, lichte benaderingen; de ingestelde maten blijven leidend.
 export function productShape(product){
@@ -18,14 +19,16 @@ export function productShape(product){
 export function createProductModels(redraw,onModelError=()=>{}){
   const cache=new Map(),loader=new T.TextureLoader();let generation=0,disposed=false;
   const models=new Map(),batches=new Set();
+  const optimizer=createModelOptimizer();
   function custom(url,apply){
     const current=generation;
     let promise=models.get(url);
     if(!promise){
       const manager=new T.LoadingManager();manager.setURLModifier(value=>{if(value===url||/^(blob:|data:)/.test(value))return value;throw Error('Extern modelbestand geweigerd');});
-      promise=new GLTFLoader(manager).loadAsync(url).then(gltf=>{
+      promise=new GLTFLoader(manager).loadAsync(url).then(async gltf=>{
         const source=gltf.scene,bounds=new T.Box3().setFromObject(source),size=bounds.getSize(new T.Vector3());
         if(![size.x,size.y,size.z].every(n=>Number.isFinite(n)&&n>0)){disposeSource(source);throw Error('Model heeft geen geldige buitenmaten');}
+        await optimizer.optimize(source);
         source.traverse(o=>{if(o.geometry)o.geometry.userData.sharedProductModel=true;for(const m of [].concat(o.material||[]))for(const v of Object.values(m))if(v?.isTexture)v.userData.sharedProductPhoto=true;});
         if(disposed){disposeSource(source);throw Error('Weergave gesloten');}return {source,bounds,size};
       });models.set(url,promise);
@@ -181,5 +184,5 @@ export function createProductModels(redraw,onModelError=()=>{}){
     return {root,labelY:template.labelY,kind:template.kind,highlight};
   }
   function reset(){generation++;for(const dispose of batches)dispose();batches.clear();for(const entry of cache.values())entry.listeners=[];}
-  return {create,createBatch,reset,dispose(){disposed=true;reset();for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();for(const p of models.values())p.then(({source})=>disposeSource(source)).catch(()=>{});models.clear();}};
+  return {create,createBatch,reset,dispose(){disposed=true;optimizer.dispose();reset();for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();for(const p of models.values())p.then(({source})=>disposeSource(source)).catch(()=>{});models.clear();}};
 }
