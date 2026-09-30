@@ -47,24 +47,29 @@ export function createLocationView(host, onSelect) {
   const depthLabel=text(room,'4820 mm',dimX-.23,.01,0,1.5,.3);
   for(const label of [widthLabel,depthLabel]){label.material.depthTest=false;label.material.depthWrite=false;label.renderOrder=10;}
   let targets=[],snapshot,selected,overview=false,down=null,disposed=false;
+  let frame=0,sceneKey='',batches=[],cells=new Map(),cellOutline=null,cellKey='';
   const ray=new T.Raycaster();
   const productModels=createProductModels(render,product=>host.dispatchEvent(new CustomEvent('view-error',{detail:'Het 3D-model van '+(product.jb_code||product.description)+' kon niet worden geladen. De standaardvorm wordt getoond.'})));
-  function render(){if(!disposed&&host.clientWidth&&host.clientHeight){for(const panel of wallPanels){
+  function render(){if(!disposed&&!frame)frame=requestAnimationFrame(()=>{frame=0;renderNow();});}
+  function renderNow(){if(!disposed&&host.clientWidth&&host.clientHeight){for(const panel of wallPanels){
     const {nx,nz,edge}=panel.userData.wall;
     const near=(camera.position.x-panel.position.x)*nx+(camera.position.z-panel.position.z)*nz>0.01;
     panel.material.opacity=near ? 0.10 : 1;panel.material.depthWrite=!near;edge.material.opacity=near ? 0.2 : 0.7;
   }widthLabel.quaternion.copy(camera.quaternion);depthLabel.quaternion.copy(camera.quaternion);renderer.render(scene,camera);}}
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h);perspectiveCamera.aspect=w/h;perspectiveCamera.updateProjectionMatrix();frontCamera.top=frontHeight/2;frontCamera.bottom=-frontHeight/2;frontCamera.left=-frontHeight*w/h/2;frontCamera.right=frontHeight*w/h/2;frontCamera.updateProjectionMatrix();render();}
   const observer=new ResizeObserver(resize);observer.observe(host);controls.addEventListener('change',render);
-  function clear(){productModels.reset();content.traverse(o=>{if(!o.geometry?.userData.sharedProductModel)o.geometry?.dispose();for(const material of [].concat(o.material||[])){for(const v of Object.values(material))if(v?.isTexture&&!v.userData.sharedProductPhoto)v.dispose();material.dispose();}});content.clear();targets=[];}
+  function clear(){productModels.reset();batches=[];cells.clear();cellOutline=null;cellKey='';content.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(!o.geometry?.userData.sharedProductModel)o.geometry?.dispose();for(const material of [].concat(o.material||[])){for(const v of Object.values(material))if(v?.isTexture&&!v.userData.sharedProductPhoto)v.dispose();material.dispose();}});content.clear();targets=[];}
   function box(parent,w,h,d,x,y,z,color,hit){
     const mesh=new T.Mesh(new T.BoxGeometry(w,h,d),new T.MeshStandardMaterial({color,roughness:.72,metalness:.12}));mesh.position.set(x,y,z);parent.add(mesh);
     if(hit){mesh.userData.hit=hit;targets.push(mesh);}return mesh;
   }
-  function text(parent,label,x,y,z,width,height,color='#173252',bg='#ffffff'){
+  function text(parent,label,x,y,z,width,height,color='#173252',bg='#ffffff',count=1,step=0){
     const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,512,128);ctx.fillStyle=color;ctx.font='bold 54px system-ui';ctx.textBaseline='middle';ctx.textAlign='center';ctx.fillText(label,256,64,480);
     const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace;
-    const m=new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide}));m.position.set(x,y,z);parent.add(m);return m;
+    const geometry=new T.PlaneGeometry(width,height),material=new T.MeshBasicMaterial({map:texture,side:T.DoubleSide});
+    const m=count>1?new T.InstancedMesh(geometry,material,count):new T.Mesh(geometry,material);
+    if(count>1){const matrix=new T.Matrix4();for(let i=0;i<count;i++)m.setMatrixAt(i,matrix.makeTranslation(i*step,0,0));m.instanceMatrix.needsUpdate=true;}
+    m.position.set(x,y,z);parent.add(m);return m;
   }
   function update(data,selection,all=false){
     const switched=frontView!==!!selection.frontView;frontView=!!selection.frontView;
@@ -73,7 +78,10 @@ export function createLocationView(host, onSelect) {
     controls.maxPolarAngle=frontView?Math.PI/2:Math.PI*.49;controls.screenSpacePanning=true;
     room.visible=!frontView;host.dataset.view=frontView?'front':'3d';
     renderer.domElement.setAttribute('aria-label',frontView?'Recht vooraanzicht van de stelling. Klik op vakken en producten, scroll om te zoomen en sleep om te verschuiven.':'3D-stellingen. Sleep om te draaien, scroll om te zoomen.');
-    snapshot=data;selected=selection;overview=all&&!frontView;walls.scale.y=(selection.roomHeight||2600)/1000;clear();
+    snapshot=data;selected=selection;overview=all&&!frontView;walls.scale.y=(selection.roomHeight||2600)/1000;
+    const key=JSON.stringify([overview,overview?null:selection.rackId,data.racks,data.geometry,data.products.map(p=>[p.id,p.rack,p.x_axis,p.y_axis,p.description,p.jb_code,p.product_image_url,p.product_model_url])]);
+    if(key===sceneKey){highlight(selection);if(switched||(frontView&&changedFront))fit();else render();return;}
+    sceneKey=key;clear();
     for(const r of data.racks){
       if(!overview&&r.id!==selection.rackId)continue;
       const g=data.geometry.racks[r.id],w=g.width/100,h=g.height/100,d=g.depth/100;
@@ -93,7 +101,8 @@ export function createLocationView(host, onSelect) {
           if(x>1)segments.push(left,bottom+.03,d/2+.003,left,bottom+cellHeight,d/2+.003);
           {
             const plane=new T.Mesh(new T.PlaneGeometry(cellWidth,cellHeight-.04),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}));
-            plane.position.set(left+cellWidth/2,bottom+cellHeight/2,d/2+.006);plane.userData.hit={rackId:r.id,x,y};group.add(plane);targets.push(plane);
+            cells.set(r.id+':'+x+':'+y,{group,x:left+cellWidth/2,y:bottom+cellHeight/2,width:cellWidth,height:cellHeight-.035,depth:d+.015});
+            plane.visible=false;plane.position.set(left+cellWidth/2,bottom+cellHeight/2,d/2+.006);plane.userData.hit={rackId:r.id,x,y};group.add(plane);targets.push(plane);
           }
           const items=products.filter(p=>Number(p.x_axis)===x&&Number(p.y_axis)===y);
           const totalWidth=items.reduce((a,p)=>a+data.geometry.products[p.id].width/100*shelfCounts(data.geometry.products[p.id]).across+.02,0);
@@ -104,22 +113,29 @@ export function createLocationView(host, onSelect) {
             const {across,behind}=shelfCounts(pg);
             const overflow=totalWidth>cellWidth-.02||ph>cellHeight-.04||pd*behind>d-.04;
             const hit={rackId:r.id,x,y,productId:p.id};
-            for(let col=0;col<across;col++)for(let row=0;row<behind;row++){
-            const model=productModels.create(p,{width:pw,height:ph,depth:pd},{selected:String(selection.productId)===String(p.id),overflow});
-            model.root.position.set(offset+pw*(col+.5),bottom+.028+ph/2,d/2-.015-pd*(row+.5));group.add(model.root);
-            model.root.traverse(o=>{if(o.isMesh){o.userData.hit=hit;targets.push(o);}});
-            if(row===0)text(group,p.jb_code||String(p.id),offset+pw*(col+.5),bottom+.028+ph*(.5+model.labelY),d/2-.015+pd*.01,Math.min(pw*.57,.3),Math.min(ph*.09,.035));
-            }
+            const model=productModels.createBatch(p,{width:pw,height:ph,depth:pd},{across,behind,selected:String(selection.productId)===String(p.id),overflow});
+            model.root.position.set(offset+pw/2,bottom+.028+ph/2,d/2-.015-pd/2);group.add(model.root);
+            batches.push({id:String(p.id),model,overflow});
+            // Eén eenvoudige klikvorm per product, niet duizenden complexe driehoeken.
+            const target=new T.Mesh(new T.BoxGeometry(pw*across,ph,pd*behind),new T.MeshBasicMaterial());
+            target.position.set(offset+pw*across/2,bottom+.028+ph/2,d/2-.015-pd*behind/2);target.visible=false;target.userData.hit=hit;group.add(target);targets.push(target);
+            text(group,p.jb_code||String(p.id),offset+pw/2,bottom+.028+ph*(.5+model.labelY),d/2-.015+pd*.01,Math.min(pw*.57,.3),Math.min(ph*.09,.035),'#173252','#ffffff',across,pw);
             offset+=pw*across+.02;
           }
-          if(r.id===selection.rackId&&selection.x===x&&selection.y===y){
-            const outline=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(cellWidth,cellHeight-.035,d+.015)),new T.LineBasicMaterial({color:0x2b70ed}));outline.position.set(left+cellWidth/2,bottom+cellHeight/2,0);group.add(outline);
-          }
+
         }
       }
       if(segments.length){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(segments,3));group.add(new T.LineSegments(geo,new T.LineBasicMaterial({color:0x8c9fb6})));}
     }
-    if(switched||(frontView&&changedFront))fit();else render();
+    highlight(selection);if(switched||(frontView&&changedFront))fit();else render();
+  }
+  function highlight(selection){
+    for(const item of batches)item.model.highlight(item.id===String(selection.productId),item.overflow);
+    const key=selection.rackId+':'+selection.x+':'+selection.y;if(key===cellKey)return;cellKey=key;
+    if(cellOutline){cellOutline.removeFromParent();cellOutline.geometry.dispose();cellOutline.material.dispose();cellOutline=null;}
+    const cell=cells.get(key);if(!cell)return;
+    cellOutline=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(cell.width,cell.height,cell.depth)),new T.LineBasicMaterial({color:0x2b70ed}));
+    cellOutline.position.set(cell.x,cell.y,0);cell.group.add(cellOutline);
   }
   function fit(mode='perspective'){
     if(frontView){
@@ -156,5 +172,5 @@ export function createLocationView(host, onSelect) {
   renderer.domElement.addEventListener('pointerdown',onDown);renderer.domElement.addEventListener('pointerup',onUp);
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();host.dispatchEvent(new CustomEvent('view-error',{detail:'3D-weergave onderbroken. Heropen Locatie of gebruik de vakkenlijst.'}));});
   resize();
-  return {update,fit,resize,dispose(){disposed=true;observer.disconnect();controls.dispose();clear();productModels.dispose();room.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();}};
+  return {update,fit,resize,dispose(){disposed=true;cancelAnimationFrame(frame);frame=0;observer.disconnect();controls.dispose();clear();productModels.dispose();room.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose();}});renderer.dispose();renderer.domElement.remove();}};
 }

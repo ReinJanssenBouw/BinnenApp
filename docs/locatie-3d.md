@@ -1,4 +1,8 @@
-# Locatie in 3D (Windows 1.0.24)
+# Locatie in 3D (Windows 1.0.25)
+
+In 1.0.25 tekent de viewer herhaalde productonderdelen en etiketten met GPU-instancing. Er wordt per product slechts één prototype met foto of GLB geladen. Frames worden gebundeld via requestAnimationFrame; selecteren behoudt de scène en wijzigt alleen de markering. Productselectie gebruikt een eenvoudige klikvorm rond de capaciteit. Maten, aantallen, foto's en opslag blijven behouden. Model- en instancingbuffers worden opgeruimd bij herbouw of sluiten.
+
+De geïsoleerde test `controle-locatie-performance.cjs` met 400 doosmodellen meet 78 tekenopdrachten tegenover 2102 in 1.0.24; alle 75 meshes blijven bij selecteren behouden. In de softwarematige test daalde selectie van circa 539 ms naar circa 29 ms; dit is geen FPS-garantie op gebruikershardware. De test controleert ook stabiel geometriegeheugen bij herhaald selecteren en aanpassen. Bestaande tests voor productfoto's, GLB's, twaalf exemplaren, picking en stellingen blijven van toepassing.
 
 In 1.0.24 kun je per product **Naast elkaar** en **Achter elkaar** invullen, zowel bij de productmaten in Locatie als in het uploadvenster. 3 naast × 4 achter toont 12 productmodellen; de actuele voorraad blijft apart en wordt niet gewijzigd. Bestaande producten beginnen met 1 × 1. Aantallen zijn gehele getallen van 1 tot 50 met maximaal 250 plaatsen per product. De weergave waarschuwt als de totale breedte of diepte niet in het vak past. Maten en aantallen worden samen met revisiecontrole opgeslagen; oudere clients die aantallen weglaten behouden de bestaande waarden. GLB-exemplaren delen hun geometrie en afbeeldingen om geheugengebruik te beperken.
 

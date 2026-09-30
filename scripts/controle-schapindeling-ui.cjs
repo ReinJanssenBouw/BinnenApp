@@ -20,7 +20,8 @@ app.whenReady().then(async()=>{
  set('[data-dim="across"]','3');set('[data-dim="behind"]','4');await wait();
  if(!q('.l3-capacity').textContent.includes('12 plaatsen'))throw Error('Capaciteit niet bijgewerkt');
  const models=[];testScene.traverse(o=>{if(o.userData.productShape)models.push(o)});
- if(models.length!==12||new Set(models.map(o=>o.position.x)).size!==3||new Set(models.map(o=>o.position.z)).size!==4)throw Error('3D toont niet 3 bij 4: '+models.length);
+ const copies=models.reduce((sum,o)=>sum+(o.userData.productCopies||1),0);const parts=[];models[0].traverse(o=>{if(o.isInstancedMesh)parts.push(o)});const positions=[];for(let i=0;i<parts[0].count;i++){const matrix=new T.Matrix4();parts[0].getMatrixAt(i,matrix);positions.push(new T.Vector3().setFromMatrixPosition(matrix));}
+ if(copies!==12||new Set(positions.map(o=>o.x)).size!==3||new Set(positions.map(o=>o.z)).size!==4)throw Error('3D toont niet 3 bij 4: '+copies);
  q('[data-l3="save"]').click();await wait();q('[data-l3="reload"]').click();await wait();
  if(saves!==1||db.geometry.products[1].across!==3||db.geometry.products[1].behind!==4||q('[data-dim="behind"]').value!=='4')throw Error('Aantallen niet behouden');
  if(db.products[0].stock!==8||db.products[0].min_stock!==6)throw Error('Voorraad gewijzigd');
@@ -30,9 +31,9 @@ app.whenReady().then(async()=>{
  db.products[0].product_model_url=${JSON.stringify(pathToFileURL(path.join(root,'dist/test-product.glb')).href)};q('[data-l3="reload"]').click();await wait();
  const custom=[];testScene.traverse(o=>{if(o.userData.productShape)custom.push(o)});
  for(let i=0;i<50&&custom.some(o=>o.userData.modelStatus==='loading');i++)await wait();
- if(custom.length!==12||custom.some(o=>o.userData.modelStatus!=='ready'))throw Error('Eigen model niet twaalf keer ingeladen');
+ if(custom.reduce((sum,o)=>sum+(o.userData.productCopies||1),0)!==12||custom.some(o=>o.userData.modelStatus!=='ready'))throw Error('Eigen model niet twaalf keer ingeladen');
  q('[data-l3="overview"]').click();await wait();
- return {copies:models.length,columns:3,depthRows:4,persistence:true,stockUnchanged:true};
+ return {copies,columns:3,depthRows:4,persistence:true,stockUnchanged:true};
  })()`);
  assert.deepEqual(errors,[]);console.log(JSON.stringify(result));await new Promise(r=>setTimeout(r,300));
  fs.writeFileSync(path.join(root,'dist/schapindeling-preview.png'),(await w.webContents.capturePage()).toPNG());

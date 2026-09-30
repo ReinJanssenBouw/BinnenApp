@@ -17,7 +17,7 @@ export function productShape(product){
 
 export function createProductModels(redraw,onModelError=()=>{}){
   const cache=new Map(),loader=new T.TextureLoader();let generation=0,disposed=false;
-  const models=new Map();
+  const models=new Map(),batches=new Set();
   function custom(url,apply){
     const current=generation;
     let promise=models.get(url);
@@ -56,7 +56,7 @@ export function createProductModels(redraw,onModelError=()=>{}){
   }
   const cube=(r,w,h,d,x,y,z,color)=>mesh(r,new T.BoxGeometry(w,h,d),color,x,y,z);
   const cylinder=(r,top,bottom,h,y,color,metalness=0)=>mesh(r,new T.CylinderGeometry(top,bottom,h,24),color,0,y,0,metalness);
-  function create(product,dimensions,{selected=false,overflow=false}={}){
+  function create(product,dimensions,{selected=false,overflow=false,onChange=()=>{}}={}){
     const root=new T.Group(),kind=productShape(product);root.userData.productShape=kind;
     // Ontwerp binnen een eenheidskubus; schaal daarna naar de ingevoerde buitenmaten.
     if(kind==='box'){
@@ -111,7 +111,7 @@ export function createProductModels(redraw,onModelError=()=>{}){
       // Fit in world space as well, so changing box dimensions never distorts the photo.
       const maxW=labelWidth*.92*dimensions.width,maxH=labelHeight*.78*dimensions.height;
       const w=Math.min(maxW,maxH*ratio),h=w/ratio;
-      image.scale.set(w/dimensions.width,h/dimensions.height,1);imageMaterial.map=texture;imageMaterial.needsUpdate=true;image.visible=root.userData.modelStatus!=='ready';
+      image.scale.set(w/dimensions.width,h/dimensions.height,1);imageMaterial.map=texture;imageMaterial.needsUpdate=true;image.visible=root.userData.modelStatus!=='ready';onChange();
     });
     if(selected||overflow){
       const outline=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(1.015,1.015,1.025)),new T.LineBasicMaterial({color:selected?0x3675e2:0xc86955}));root.add(outline);
@@ -119,9 +119,67 @@ export function createProductModels(redraw,onModelError=()=>{}){
     root.scale.set(dimensions.width,dimensions.height,dimensions.depth);
     if(product.product_model_url){
       const fallback=[...root.children];root.userData.modelStatus='loading';
-      custom(product.product_model_url,model=>{root.userData.modelStatus=model?'ready':'error';if(model){for(const child of fallback)if(!child.isLineSegments)child.visible=false;root.add(model);root.userData.productShape='uploaded';}else onModelError(product);});
+      custom(product.product_model_url,model=>{root.userData.modelStatus=model?'ready':'error';if(model){for(const child of fallback)if(!child.isLineSegments)child.visible=false;root.add(model);root.userData.productShape='uploaded';}else onModelError(product);onChange();});
     }
     return {root,labelY:labelY-labelHeight*.40,kind};
   }
-  return {create,reset(){generation++;for(const entry of cache.values())entry.listeners=[];},dispose(){disposed=true;for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();for(const p of models.values())p.then(({source})=>disposeSource(source)).catch(()=>{});models.clear();}};
+  function createBatch(product,dimensions,{across=1,behind=1,selected=false,overflow=false}={}){
+    const root=new T.Group(),visual=new T.Group();root.add(visual);
+    root.userData.productCopies=across*behind;
+    let template,dead=false;
+    const translation=new T.Matrix4(),matrix=new T.Matrix4(),partMatrix=new T.Matrix4();
+    // Eén prototype per product. Identieke onderdelen delen één GPU-tekenopdracht.
+    function rebuild(){
+      if(!template||dead)return;
+      visual.traverse(o=>{if(o.isInstancedMesh)o.dispose();});visual.clear();
+      template.root.updateMatrixWorld(true);
+      root.userData.productShape=template.root.userData.productShape;
+      root.userData.modelStatus=template.root.userData.modelStatus;
+      template.root.traverseVisible(part=>{
+        if(!part.geometry)return;
+        if(part.isMesh){
+          const sourceCount=part.isInstancedMesh?part.count:1;
+          const mesh=new T.InstancedMesh(part.geometry,part.material,across*behind*sourceCount);
+          mesh.renderOrder=part.renderOrder;let index=0;
+          for(let col=0;col<across;col++)for(let row=0;row<behind;row++)for(let source=0;source<sourceCount;source++){
+            translation.makeTranslation(col*dimensions.width,0,-row*dimensions.depth);
+            matrix.multiplyMatrices(translation,part.matrixWorld);
+            if(part.isInstancedMesh){part.getMatrixAt(source,partMatrix);matrix.multiply(partMatrix);}
+            mesh.setMatrixAt(index,matrix);
+            if(part.morphTargetInfluences)mesh.setMorphAt(index,part);
+            index++;
+          }
+          mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();visual.add(mesh);
+        }else{
+          // Zeldzame lijn-/puntprimitieven in een GLB behouden hun oorspronkelijke vorm.
+          for(let col=0;col<across;col++)for(let row=0;row<behind;row++){
+            const copy=part.clone(false);copy.matrixAutoUpdate=false;
+            copy.matrix.multiplyMatrices(translation.makeTranslation(col*dimensions.width,0,-row*dimensions.depth),part.matrixWorld);visual.add(copy);
+          }
+        }
+      });
+      redraw();
+    }
+    template=create(product,dimensions,{onChange:rebuild});
+    // De afzonderlijke exemplaren blijven herkenbaar; ook hun randen gaan in één batch.
+    const edgeBox=new T.BoxGeometry(dimensions.width*1.015,dimensions.height*1.015,dimensions.depth*1.025),edges=new T.EdgesGeometry(edgeBox);
+    const points=edges.attributes.position.array,allPoints=new Float32Array(points.length*across*behind);let point=0;
+    for(let col=0;col<across;col++)for(let row=0;row<behind;row++)for(let i=0;i<points.length;i+=3){allPoints[point++]=points[i]+col*dimensions.width;allPoints[point++]=points[i+1];allPoints[point++]=points[i+2]-row*dimensions.depth;}
+    edgeBox.dispose();edges.dispose();
+    const outlineGeometry=new T.BufferGeometry();outlineGeometry.setAttribute('position',new T.BufferAttribute(allPoints,3));
+    const outline=new T.LineSegments(outlineGeometry,new T.LineBasicMaterial());root.add(outline);
+    function highlight(selected,overflow){outline.visible=selected||overflow;outline.material.color.setHex(selected?0x3675e2:0xc86955);}
+    function dispose(){
+      if(dead)return;dead=true;
+      visual.traverse(o=>{if(o.isInstancedMesh)o.dispose();});
+      const geometries=new Set(),materials=new Set();
+      template.root.traverse(o=>{if(o.geometry&&!o.geometry.userData.sharedProductModel)geometries.add(o.geometry);for(const m of [].concat(o.material||[]))materials.add(m);});
+      for(const g of geometries)g.dispose();for(const m of materials)m.dispose();
+      outline.geometry.dispose();outline.material.dispose();root.clear();
+    }
+    batches.add(dispose);highlight(selected,overflow);rebuild();
+    return {root,labelY:template.labelY,kind:template.kind,highlight};
+  }
+  function reset(){generation++;for(const dispose of batches)dispose();batches.clear();for(const entry of cache.values())entry.listeners=[];}
+  return {create,createBatch,reset,dispose(){disposed=true;reset();for(const entry of cache.values()){entry.listeners=[];entry.texture.dispose();}cache.clear();for(const p of models.values())p.then(({source})=>disposeSource(source)).catch(()=>{});models.clear();}};
 }
