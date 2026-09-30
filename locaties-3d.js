@@ -17,6 +17,14 @@
     const rack=()=>state.data?.racks.find(r=>r.id===state.rackId);
     const product=()=>state.data?.products.find(p=>String(p.id)===String(state.productId));
     const group=()=>{const r=rack();return r?state.data.products.filter(p=>p.rack===r.name&&Number(p.x_axis)===state.x&&Number(p.y_axis)===state.y):[];};
+    function widthLimit(p,r=state.data?.racks.find(r=>r.name===p?.rack),y=Number(p?.y_axis)){
+      if(!r||!r.rowColumns[y-1])return 500;
+      return Math.max(0,Math.min(500,Math.floor(((state.data.geometry.racks[r.id].width-8)/r.rowColumns[y-1]-3)*10+1e-7)/10));
+    }
+    function widthError(){
+      const p=state.data?.products.find(p=>state.data.geometry.products[p.id]?.width>widthLimit(p)+1e-7);
+      return p?`${p.jb_code||p.description} is te breed voor het vak. Maximale breedte: ${widthLimit(p)} cm. Verklein het product of maak het vak breder.`:'';
+    }
     const field=(label,key,value,min,max,scope='rack',step='0.1')=>`<label>${label}<div class="l3-input-unit"><input type="number" data-dim="${key}" data-scope="${scope}" min="${min}" max="${max}" step="${step}" required value="${esc(value)}" ${!admin()||state.busy?'disabled':''}><span>${key==='angle'?'°':'cm'}</span></div></label>`;
     function normalize(data){
       data=clone(data);data.geometry={version:1,racks:{...data.geometry?.racks},products:{...data.geometry?.products}};
@@ -36,10 +44,10 @@
         if(Object.entries(rackLimits).some(([key,[min,max]])=>!validNumber(state.data.geometry.racks[r.id][key],min,max)))return 'Controleer de stellingmaten en positie. Gebruik de grenzen bij het veld.';
       }
       for(const g of Object.values(state.data.geometry.products))if(['width','height','depth'].some(k=>!validNumber(g[k],.1,500)))return 'Productmaten moeten tussen 0,1 en 500 cm liggen.';
-      return '';
+      return widthError();
     }
     function status(){
-      const error=state.dirty?validation():'';
+      const error=state.dirty?validation():widthError();
       $('.l3-storage').hidden=!['local','pending'].includes(state.data?.storage);
       $('.l3-storage').textContent=state.data?.storage==='pending'?'Je lokale maten staan klaar om te delen. Klik op Model opslaan.':'3D-maten worden op deze pc bewaard. Stellingen en productlocaties worden met de andere apparaten gedeeld.';
       $('.l3-status').textContent=error||(!state.plan&&viewError)||state.message||(state.dirty?'Niet opgeslagen · sla je model op om deze maten te bewaren.':'Maten in centimeters · controleer de startmaten met je echte stellingen.');
@@ -83,7 +91,7 @@
       $('.l3-scale').textContent=state.mode==='flat'?'Recht vooraanzicht · zonder perspectief':'Ruimte 6630 × 4820 mm · Raster 500 mm';
       $('.l3-stage-caption span').textContent=state.mode==='flat'?'Klik: vak of product · Scroll: zoomen · Sleep: verschuiven':state.plan?(admin()?'Sleep: verplaatsen · Magneet bij muren · Esc: annuleren. Blauwe lijn: voorkant.':'Klik op een stelling om deze te bekijken. Dikke blauwe lijn: voorkant.'):'Sleep: draaien · Scroll: zoomen · Rechtermuisknop: verschuiven';
     }
-    function draw(){showView();if(state.data&&!validation()){if(state.plan)planView();else view?.update(state.data,{...state,frontView:state.mode==='flat'},state.overview);}}
+    function draw(){showView();const error=validation();if(state.data&&(!error||error===widthError())){if(state.plan)planView();else view?.update(state.data,{...state,frontView:state.mode==='flat'},state.overview);}}
     root.addEventListener('keydown',e=>{if(!planDrag&&(e.key==='Enter'||e.key===' ')&&e.target.matches('.l3-plan-rack')){e.preventDefault();select({rackId:e.target.dataset.id});}});
     const planHost=$('.l3-plan');
     function snapToWalls(g,drag){
@@ -178,7 +186,7 @@
       const r=rack();if(!r){$('.l3-inspector').innerHTML='<div class="l3-empty"><h2>Begin met een stelling</h2><p>Maak links een stelling. Stel daarna de afmetingen in en kies een vak voor je producten.</p></div>';return;}
       const g=state.data.geometry.racks[r.id],p=product(),pg=p&&state.data.geometry.products[p.id];
       $('.l3-inspector').innerHTML=`<div class="l3-inspector-title"><span class="l3-eyebrow">${p?'PRODUCT':'STELLING'}</span><h2>${esc(p?p.jb_code:r.name)}</h2>${p?`<p>${esc(p.description)}</p><button type="button" data-l3="rack-settings">← Stellingmaten</button>`:''}</div>
-      ${roomWarning(g)}${p?`<div class="l3-fields">${field('Breedte','width',pg.width,.1,500,'product')}${field('Hoogte','height',pg.height,.1,500,'product')}${field('Diepte','depth',pg.depth,.1,500,'product')}</div><p class="l3-muted">Maten van het product of de verpakking die je in dit vak neerzet. Eén eenvoudig model per product, onafhankelijk van de voorraad. Schroeven staan in een doos met productfoto. De vorm is een benadering.</p>`:`
+      ${roomWarning(g)}${p?`<div class="l3-fields">${field('Breedte','width',pg.width,.1,widthLimit(p),'product')}${field('Hoogte','height',pg.height,.1,500,'product')}${field('Diepte','depth',pg.depth,.1,500,'product')}</div><p class="l3-muted">Maximale breedte in dit vak: ${widthLimit(p)} cm. Maten van het product of de verpakking die je in dit vak neerzet. Eén eenvoudig model per product, onafhankelijk van de voorraad. Schroeven staan in een doos met productfoto. De vorm is een benadering.</p>`:`
       <label class="l3-name">Naam<input data-rack-field="name" maxlength="64" value="${esc(r.name)}" ${!admin()||state.busy?'disabled':''}></label>
       <div class="l3-fields">${field('Breedte','width',g.width,10,2000)}${field('Hoogte','height',g.height,10,1000)}${field('Diepte','depth',g.depth,10,500)}</div>
       <details class="l3-section"><summary>Positie in het magazijn</summary><div class="l3-fields">${field('Links / rechts','x',g.x,-5000,5000)}${field('Voor / achter','z',g.z,-5000,5000)}${field('Draaien','angle',g.angle,0,359,'rack','1')}</div><p class="l3-muted">Positie van het midden van de stelling, gemeten vanaf het midden van de ruimte.</p></details>
@@ -206,7 +214,7 @@
     root.addEventListener('input',e=>{
       if(e.target.matches('.l3-search')){state.query=e.target.value;$('.l3-search-results').innerHTML=choices();return;}
       if(!admin()||state.busy||!rack())return;
-      if(e.target.dataset.dim){const target=e.target.dataset.scope==='product'?state.data.geometry.products[state.productId]:state.data.geometry.racks[state.rackId];if(target){target[e.target.dataset.dim]=e.target.value===''?NaN:Number(e.target.value);dirty();}}
+      if(e.target.dataset.dim){const target=e.target.dataset.scope==='product'?state.data.geometry.products[state.productId]:state.data.geometry.racks[state.rackId];if(target){target[e.target.dataset.dim]=e.target.value===''?NaN:Number(e.target.value);if(e.target.dataset.scope==='product'&&e.target.dataset.dim==='width'&&target.width>widthLimit(product())){target.width=widthLimit(product());e.target.value=target.width;}dirty();}}
       if(e.target.dataset.rackField==='name'){
         const oldName=rack().name;rack().name=e.target.value;for(const p of state.data.products)if(p.rack===oldName)p.rack=rack().name;dirty();renderRacks();
       }
@@ -270,6 +278,7 @@
         if(state.dirty){state.message='Sla eerst het model op. Daarna kun je producten toevoegen of verplaatsen.';status();return;}
         if(!state.x||!state.y)return;
         const p=state.data.products.find(p=>String(p.id)===b.dataset.id);if(!p)return;
+        if(action==='assign'&&state.data.geometry.products[p.id].width>widthLimit(p,rack(),state.y)){state.message=`Dit product is ${state.data.geometry.products[p.id].width} cm breed; in dit vak past maximaal ${widthLimit(p,rack(),state.y)} cm. Kies een breder vak of pas eerst de productbreedte aan.`;status();return;}
         state.busy=true;state.message='Productlocatie opslaan…';render();
         try{await api.assign({p_product_id:p.id,p_rack_id:action==='assign'?state.rackId:null,p_x:state.x,p_y:state.y,p_revision:state.data.revision,p_expected_updated_at:p.updated_at});if(action==='unassign')state.productId=null;else state.productId=p.id;adopt(await api.loadScene());state.message='Productlocatie opgeslagen.';}
         catch(error){state.message=error.message||'Productlocatie opslaan mislukt. Vernieuw en probeer opnieuw.';}

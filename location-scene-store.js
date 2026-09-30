@@ -51,6 +51,15 @@ function createLocationSceneStore({supabase, directory, projectUrl}) {
     const local = read();
     if ((payload.localRevision ?? 0) !== local.revision) throw new Error('De lokale maten zijn intussen gewijzigd. Vernieuw en probeer opnieuw.');
     validate(payload.geometry,payload.racks);
+    const current=checked(await supabase.rpc('binnenapp_get_location_layout'));
+    for(const p of current.products){
+      const oldRack=current.racks.find(r=>r.name===p.rack),r=payload.racks.find(r=>r.id===oldRack?.id);
+      const columns=r?.rowColumns?.[Number(p.y_axis)-1]??r?.columns,g=r&&payload.geometry.racks[r.id],pg=payload.geometry.products[p.id];
+      if(g&&pg&&columns){
+        const max=Math.max(0,Math.min(500,Math.floor(((g.width-8)/columns-3)*10+1e-7)/10));
+        if(pg.width>max+1e-7)throw new Error(`${p.jb_code||p.id} is te breed voor het vak. Maximale breedte: ${max} cm.`);
+      }
+    }
     const response = await supabase.rpc('binnenapp_save_location_scene', {
       p_racks:payload.racks,p_geometry:payload.geometry,p_revision:payload.revision,p_scene_revision:payload.sceneRevision
     });

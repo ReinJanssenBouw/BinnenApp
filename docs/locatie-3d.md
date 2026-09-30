@@ -1,4 +1,4 @@
-# Locatie in 3D (Windows 1.0.18)
+# Locatie in 3D (Windows 1.0.19)
 
 De ruimte heeft een vaste vloermaat van **6630 × 4820 mm**. Het model opent met de hele ruimte; met **Stelling bekijken** kun je een stelling van dichtbij bewerken. Stellingposities worden in centimeters gemeten vanaf het midden van de ruimte. Een waarschuwing verschijnt als een stelling, inclusief de ingestelde draaihoek, over de vloergrens steekt. De vier muren zijn voorlopig **2600 mm** hoog. Via **Hoogte muren** links kun je de hoogte aanpassen; deze instelling blijft op dezelfde pc bewaard. De muren aan de kijkzijde worden automatisch transparant, zodat de stellingen bereikbaar blijven.
 
@@ -19,3 +19,5 @@ De extra 3D-maten worden in deze release lokaal bewaard in `binnenapp-location-s
 Cloudmigratie `supabase/migrations/20260925140000_locatie_3d.sql` is voorbereid, maar op 25 september 2026 **niet uitgevoerd**: de browserbediening voor het Supabase-dashboard was onbereikbaar. Alleen toepassen op BinnenApp-project **guurncfxhcxwvgnzoeyp**. Daarna `scripts/controle-locaties-3d.sql` uitvoeren; deze test draait alle wijzigingen terug. De losse tabel voorkomt dat oudere clients de maten overschrijven. Na activering verschijnen bestaande lokale maten als klaar om te delen; **Model opslaan** zet ze in de cloud.
 
 Gecontroleerd met `node scripts/controle-locatie-opslag.cjs` en de geïsoleerde Electron-fixture `scripts/controle-locaties-3d.cjs`: aanmaken, maten, rijindeling, producttoewijzing/verplaatsing, herladen, ongeldige invoer, revisieconflicten, beheerrechten, voorraadbehoud, WebGL en desktopbreedtes. De cloudmigratie en rollback-SQL-test moeten nog op de database worden uitgevoerd.
+
+Productbreedte is begrensd tot de binnenbreedte per vak, met 1,5 cm vrije ruimte aan iedere zijkant. Het maximum volgt de kolommen van de betreffende rij. Te grote invoer wordt begrensd; een bezet vak smaller maken of een te breed product verplaatsen wordt geblokkeerd. Bestaande te brede modellen tonen een melding en worden binnen de vakbreedte weergegeven totdat de maat is gecorrigeerd.

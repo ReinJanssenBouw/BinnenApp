@@ -25,11 +25,13 @@ app.whenReady().then(async()=>{
  set('[data-dim="height"]','');const invalidBlocked=q('[data-l3="save"]').disabled;set('[data-dim="height"]','180');
  click('[data-l3="save"]');await wait();const rackId=db.racks[0].id;const saved=copy(db);
  set('[data-select="y"]','1','change');set('[data-select="x"]','2','change');click('[data-l3="assign"][data-id="1"]');await wait();
- const assigned=db.products[0].rack==='Stelling A'&&db.products[0].x_axis==='2';set('[data-dim="width"][data-scope="product"]','90');set('[data-dim="width"][data-scope="product"]','90','change');const warned=!!q('.l3-warning');
- click('[data-l3="save"]');await wait();click('[data-l3="reload"]');await wait();const persisted=q('[data-dim="width"][data-scope="product"]').value==='90';
+ const assigned=db.products[0].rack==='Stelling A'&&db.products[0].x_axis==='2';set('[data-dim="width"][data-scope="product"]','90');set('[data-dim="width"][data-scope="product"]','90','change');const warned=q('[data-dim="width"][data-scope="product"]').value==='55'&&q('[data-dim="width"][data-scope="product"]').max==='55';
+ click('[data-l3="save"]');await wait();click('[data-l3="reload"]');await wait();const persisted=q('[data-dim="width"][data-scope="product"]').value==='55';
+ click('[data-l3="rack-settings"]');set('[data-row="0"]','8','change');if(!q('[data-l3="save"]').disabled||!q('.l3-status').textContent.includes('te breed'))throw Error('Te smal vak niet geblokkeerd');set('[data-row="0"]','4','change');click('[data-l3="save"]');await wait();
  set('[data-select="y"]','2','change');set('[data-select="x"]','1','change');click('[data-l3="assign"][data-id="1"]');await wait();const moved=db.products[0].y_axis==='2';
  click('[data-l3="unassign"][data-id="1"]');await wait();const removed=db.products[0].rack===null;
  click('[data-l3="assign"][data-id="1"]');await wait();click('[data-l3="rack-settings"]');
+ set('[data-row="0"]','20','change');click('[data-l3="save"]');await wait();set('[data-select="y"]','1','change');set('[data-select="x"]','1','change');const beforeTooWide=assigns;click('[data-l3="assign"][data-id="2"]');await wait();if(assigns!==beforeTooWide||!q('.l3-status').textContent.includes('past maximaal'))throw Error('Te breed product kon worden verplaatst');set('[data-row="0"]','4','change');click('[data-l3="save"]');await wait();
  fail=true;set('[data-dim="depth"]','85');click('[data-l3="save"]');await wait();const conflict=q('.l3-status').textContent.includes('Testconflict')&&!q('[data-l3="save"]').disabled&&db.geometry.racks[rackId].depth===80;fail=false;click('[data-l3="save"]');await wait();
  set('[data-dim="width"]','245');click('[data-l3="mode"]');await wait();
  const flat=q('.l3-canvas').dataset.view==='front'&&!q('.l3-work').hidden&&q('[data-dim="width"]').value==='245'&&!q('[data-l3="save"]').disabled&&!q('[data-l3="save"]').hidden;

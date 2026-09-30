@@ -98,7 +98,8 @@ export function createLocationView(host, onSelect) {
           const totalWidth=items.reduce((a,p)=>a+data.geometry.products[p.id].width/100+.02,0);
           let offset=left+.015;
           for(const p of items){
-            const pg=data.geometry.products[p.id],pw=pg.width/100,ph=pg.height/100,pd=pg.depth/100;
+            const pg=data.geometry.products[p.id],pw=Math.min(pg.width/100,Math.max(0,cellWidth-.03)),ph=pg.height/100,pd=pg.depth/100;
+            if(pw<=0)continue;
             const overflow=totalWidth>cellWidth-.02||ph>cellHeight-.04||pd>d-.04;
             const hit={rackId:r.id,x,y,productId:p.id};
             const model=productModels.create(p,{width:pw,height:ph,depth:pd},{selected:String(selection.productId)===String(p.id),overflow});
